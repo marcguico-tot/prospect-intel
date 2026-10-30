@@ -1,0 +1,1982 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Prospect Intelligence (prototype)</title>
+<style>
+:root{
+  --bg:#f6f7f9; --surface:#fff; --text:#1c2430; --muted:#5b6675; --line:#dfe3e9;
+  --accent:#1f5fd6; --accent-ink:#fff; --hi:#0b7a4b; --hi-bg:#e3f4ec; --mid:#8a5a00; --mid-bg:#fbf0d9;
+  --lo:#5b6675; --lo-bg:#eceff3; --bad:#b42318; --bad-bg:#fde8e6; --info:#1f5fd6; --info-bg:#e6eefc;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#12161c; --surface:#1a2029; --text:#e7ebf0; --muted:#9aa5b4; --line:#2b3441;
+    --accent:#6ea2ff; --accent-ink:#0c1118; --hi:#5fd3a0; --hi-bg:#14352a; --mid:#f0c262; --mid-bg:#3a2e12;
+    --lo:#9aa5b4; --lo-bg:#232b36; --bad:#ff8b80; --bad-bg:#3d1b18; --info:#8db6ff; --info-bg:#1b2a47;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:0 16px 48px}
+header{padding:24px 0 8px}
+h1{font-size:22px;margin:0;display:inline}
+h2{font-size:17px;margin:28px 0 10px}
+h3{font-size:15px;margin:18px 0 6px}
+.sub{color:var(--muted);margin:4px 0 0;font-size:14px}
+.badge{display:inline-block;margin-left:10px;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:600;vertical-align:middle;background:var(--mid-bg);color:var(--mid)}
+.badge.live{background:var(--hi-bg);color:var(--hi)}
+nav{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:16px 0;overflow-x:auto}
+nav button{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;font:inherit;color:var(--muted);cursor:pointer;white-space:nowrap}
+nav button[aria-selected="true"]{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
+nav .n{font-size:12px;background:var(--lo-bg);color:var(--lo);border-radius:99px;padding:1px 7px;margin-left:6px}
+button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.banner{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:10px 14px;margin:0 0 14px;font-size:14px;color:var(--muted)}
+.banner.err{border-left-color:var(--bad);color:var(--bad)}
+.banner.warn{border-left-color:var(--mid)}
+.banner b{color:var(--text)}
+.tools{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px;align-items:center}
+.tools select,.tools input{font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);max-width:100%}
+.tools .grow{flex:1;min-width:140px}
+.tools label{font-size:13px;color:var(--muted)}
+.btn{font:inherit;padding:7px 14px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--text);cursor:pointer}
+.btn:hover:not(:disabled){border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.btn.danger{color:var(--bad)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:0 0 12px}
+.card.gated{border-style:dashed}
+.top{display:flex;gap:14px;justify-content:space-between;align-items:flex-start}
+.top .main{min-width:0;flex:1}
+.name{font-weight:650;font-size:16px}
+.name small{font-weight:400;color:var(--muted)}
+.row{margin:2px 0;color:var(--muted)}
+.row b{color:var(--text);font-weight:600}
+.fit{flex:none;text-align:center;border-radius:10px;padding:6px 10px;min-width:92px}
+.fit .big{font-size:26px;font-weight:700;line-height:1.1}
+.fit .of{font-size:12px}
+.fit small{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.fit .cf{display:block;font-size:11px;font-weight:500;margin-top:2px}
+.t-hi{background:var(--hi-bg);color:var(--hi)} .t-mid{background:var(--mid-bg);color:var(--mid)} .t-lo{background:var(--lo-bg);color:var(--lo)}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}
+.tag{font-size:12px;padding:2px 8px;border-radius:99px;background:var(--lo-bg);color:var(--lo)}
+.tag.bad{background:var(--bad-bg);color:var(--bad);font-weight:600}
+.tag.state{background:var(--info-bg);color:var(--info);font-weight:600}
+.tag.warn{background:var(--mid-bg);color:var(--mid)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+.actions label{font-size:13px;color:var(--muted)}
+.actions input,.actions select{font:inherit;font-size:14px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);max-width:100%}
+details{margin-top:10px}
+summary{cursor:pointer;color:var(--accent);font-size:14px}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;margin:10px 0 0;font-size:14px}
+dt{color:var(--muted)} dd{margin:0;overflow-wrap:anywhere}
+dd ul{margin:0;padding-left:18px}
+blockquote{margin:2px 0;padding:2px 10px;border-left:3px solid var(--line);color:var(--muted)}
+.parts{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;margin-top:10px}
+.part{background:var(--lo-bg);border-radius:8px;padding:6px 10px;font-size:13px}
+.part b{display:block}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:13px}
+.scroll{overflow-x:auto}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:0 0 6px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.stat b{display:block;font-size:24px;line-height:1.2}
+.stat span{color:var(--muted);font-size:13px}
+.bar{height:8px;background:var(--lo-bg);border-radius:4px;overflow:hidden;min-width:80px}
+.bar i{display:block;height:100%;background:var(--accent)}
+pre{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap}
+.empty{color:var(--muted);padding:18px;text-align:center;border:1px dashed var(--line);border-radius:12px}
+.flow{display:grid;gap:10px;margin:8px 0}
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+.stage .num{display:inline-block;width:24px;height:24px;line-height:24px;text-align:center;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:13px;font-weight:700;margin-right:8px}
+.stage p{margin:4px 0 0;color:var(--muted);font-size:14px}
+.stage p b{color:var(--text)}
+@media (max-width:560px){
+  .top{flex-direction:column-reverse}
+  .fit{align-self:flex-start;display:flex;gap:8px;align-items:baseline;padding:4px 12px;flex-wrap:wrap}
+  .fit small,.fit .cf{display:inline;margin:0}
+  dl{grid-template-columns:1fr} dt{margin-top:6px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Prospect Intelligence</h1><span class="badge" id="mode">Loading…</span>
+  <p class="sub">Prototype aligned to Dev Spec v0.2 · Scores are review-order aids only, never Sales qualification · Nothing is sent automatically</p>
+</header>
+<nav role="tablist" aria-label="Views" id="tabs"></nav>
+<div id="msg"></div>
+<main id="view" aria-live="polite"></main>
+</div>
+
+<script>
+/* ===== Settings you may edit ===================================================
+   Leave all three empty for sample data. To use Google Sheets, put each tab's
+   "Publish to web → CSV" link here (see README). Anyone with a link can read that tab. */
+const SHEET_CSV_URLS = { merchant: "", partner: "", playbooks: "" };
+const CONFIG = {
+ "rubric_version": "v0.2-hypothesis",
+ "rating_levels": [
+  [
+   "Strong",
+   1.0
+  ],
+  [
+   "Partial",
+   0.5
+  ],
+  [
+   "Weak",
+   0.2
+  ],
+  [
+   "None",
+   0.0
+  ],
+  [
+   "Unknown",
+   0.0
+  ]
+ ],
+ "lists": {
+  "category": [
+   "Vape / nicotine",
+   "Hemp / CBD",
+   "Firearms / ammo",
+   "Alcohol",
+   "Peptides / research",
+   "Other regulated",
+   "Adult",
+   "Other ecommerce"
+  ],
+  "geography": [
+   "United States",
+   "Canada",
+   "UK / EU",
+   "Other"
+  ],
+  "platform": [
+   "Shopify",
+   "WooCommerce",
+   "BigCommerce",
+   "Magento",
+   "Custom / other",
+   "Unknown"
+  ]
+ },
+ "evidence_type": [
+  [
+   "Company website",
+   40
+  ],
+  [
+   "Press or announcement",
+   35
+  ],
+  [
+   "Approved data provider",
+   30
+  ],
+  [
+   "Directory or forum",
+   15
+  ],
+  [
+   "Unverified",
+   5
+  ]
+ ],
+ "conf_extra": {
+  "verified": 25,
+  "second_source": 20,
+  "excerpt": 15
+ },
+ "conf_bands": {
+  "high": 85,
+  "medium": 55
+ },
+ "stale_days": 180,
+ "timing": "Proposed within 2 business days",
+ "crm": [
+  [
+   "Not in CRM",
+   "ok"
+  ],
+  [
+   "In CRM - no owner",
+   "ok"
+  ],
+  [
+   "In CRM - owner inactive",
+   "ok"
+  ],
+  [
+   "Needs check",
+   "check"
+  ],
+  [
+   "Owned - active owner",
+   "owned"
+  ],
+  [
+   "Open deal",
+   "owned"
+  ],
+  [
+   "Current customer",
+   "owned"
+  ],
+  [
+   "Suppressed - opt-out / DNC",
+   "suppressed"
+  ]
+ ],
+ "disqualifier": [
+  [
+   "None",
+   "none"
+  ],
+  [
+   "Unsupported ruleset / category",
+   "disq"
+  ],
+  [
+   "Expects tax filing or remittance",
+   "disq"
+  ],
+  [
+   "Expects guaranteed processor approval",
+   "disq"
+  ],
+  [
+   "Dispensary",
+   "disq"
+  ],
+  [
+   "Single gap - other TOT module",
+   "alt"
+  ]
+ ],
+ "plain": {
+  "partner_type": [
+   "Agency",
+   "Consultant",
+   "Platform partner",
+   "Other"
+  ],
+  "signal_status": [
+   "Verified",
+   "Inferred"
+  ],
+  "yesno": [
+   "Yes",
+   "No"
+  ],
+  "buyer_role": [
+   "Owner / founder",
+   "Compliance lead",
+   "Ecommerce / ops lead",
+   "Technical lead",
+   "Partnerships lead",
+   "Unknown"
+  ],
+  "contact_route": [
+   "Known contact",
+   "Warm intro needed",
+   "Needs research",
+   "No permitted route"
+  ],
+  "offer": [
+   "Storefront",
+   "Standby",
+   "Compliance",
+   "Partnership",
+   "Other TOT module"
+  ],
+  "status": [
+   "New",
+   "Investigate",
+   "Revise",
+   "Approved",
+   "Deferred",
+   "Rejected"
+  ],
+  "outcome": [
+   "Not started",
+   "Conversation",
+   "Sales-accepted opportunity",
+   "Proposal",
+   "Won",
+   "Lost / no response"
+  ]
+ },
+ "segments": {
+  "merchant": {
+   "label": "Merchant",
+   "sheet": "Merchants",
+   "prefix": "MER",
+   "rubric": [
+    {
+     "key": "icp_fit",
+     "label": "ICP fit",
+     "max": 25,
+     "kind": "rating",
+     "hint": "Legal restricted-commerce business, supported US market, durable ICP characteristics"
+    },
+    {
+     "key": "solution_fit",
+     "label": "Solution fit",
+     "max": 20,
+     "kind": "rating",
+     "hint": "Specific supported Storefront / Standby / Compliance need; hard incompatibilities gate out"
+    },
+    {
+     "key": "intent",
+     "label": "Buying intent / urgency",
+     "max": 30,
+     "kind": "signal",
+     "hint": "Dated, verified external trigger and active evaluation"
+    },
+    {
+     "key": "relationship",
+     "label": "Relationship path",
+     "max": 15,
+     "kind": "rating",
+     "hint": "Existing relationship, referral, direct buyer access"
+    },
+    {
+     "key": "viability",
+     "label": "Commercial viability",
+     "max": 10,
+     "kind": "rating",
+     "hint": "Reasonable operational scale, budget / implementation suitability from evidence"
+    }
+   ],
+   "signals": [
+    {
+     "name": "Verified platform eviction / forced migration",
+     "pts": 30,
+     "next": "Research buyer → approved migration call/email play",
+     "team": "Growth → Sales",
+     "mode": "outbound",
+     "reason": "Forced to leave their platform - a dated, external reason to move now.",
+     "prereq": null,
+     "fallback": "Growth: contact research; Dev: technical fit only if necessary"
+    },
+    {
+     "name": "Public migration announcement",
+     "pts": 28,
+     "next": "Research buyer → approved migration call/email play",
+     "team": "Growth → Sales",
+     "mode": "outbound",
+     "reason": "Announced a platform migration - a natural moment to plan verification and tax for the new checkout.",
+     "prereq": null,
+     "fallback": "Growth: contact research; Dev: technical fit only if necessary"
+    },
+    {
+     "name": "Merchant-reported processor or regulator notice",
+     "pts": 24,
+     "next": "Validate facts; Sales discovery; Ops compliance review if needed",
+     "team": "Sales / Ops",
+     "mode": "outbound",
+     "reason": "Merchant reported a processor or regulator notice - validate facts before any outreach.",
+     "prereq": "Austin to decide whether compliance triggers may drive outbound (open)",
+     "fallback": "Growth: contact research; Dev: technical fit only if necessary"
+    },
+    {
+     "name": "Trusted referral with identified merchant need",
+     "pts": 22,
+     "next": "Request permission for introduction; then Sales handoff",
+     "team": "Growth → Sales",
+     "mode": "outbound",
+     "reason": "A trusted referrer identified a specific merchant need.",
+     "prereq": null,
+     "fallback": "Growth: contact research; Dev: technical fit only if necessary"
+    },
+    {
+     "name": "Verified active customer expansion",
+     "pts": 20,
+     "next": "Notify existing owner; no new outbound",
+     "team": "Sales / Success",
+     "mode": "owner",
+     "reason": "Existing customer showing expansion - belongs to the account owner.",
+     "prereq": null,
+     "fallback": "Growth: contact research; Dev: technical fit only if necessary"
+    },
+    {
+     "name": "Inferred migration or unidentified buyer",
+     "pts": 10,
+     "next": "Research source, role, contact route; hold outreach",
+     "team": "Growth",
+     "mode": "research",
+     "reason": "Possible migration or unknown buyer - research before anything else.",
+     "prereq": null,
+     "fallback": "Growth: contact research; Dev: technical fit only if necessary"
+    },
+    {
+     "name": "Uncertain migration feasibility",
+     "pts": 10,
+     "next": "Technical feasibility review; no unsupported promises",
+     "team": "Dev / Product",
+     "mode": "research",
+     "reason": "Not clear we can support the migration - technical review first.",
+     "prereq": null,
+     "fallback": "Growth: contact research; Dev: technical fit only if necessary"
+    },
+    {
+     "name": "Lighthouse weakness only",
+     "pts": 0,
+     "next": "Fit indicator, not intent; no priority-A designation",
+     "team": "Growth",
+     "mode": "research",
+     "reason": "Site-quality weakness only - a fit indicator, not buying intent.",
+     "prereq": null,
+     "fallback": "Growth: contact research; Dev: technical fit only if necessary"
+    }
+   ],
+   "a_min_signal": 20,
+   "fields": [
+    {
+     "key": "engine_id",
+     "label": "Engine ID",
+     "kind": "text"
+    },
+    {
+     "key": "account",
+     "label": "Account",
+     "kind": "text"
+    },
+    {
+     "key": "website",
+     "label": "Website",
+     "kind": "text"
+    },
+    {
+     "key": "category",
+     "label": "Category",
+     "kind": "list:category"
+    },
+    {
+     "key": "geography",
+     "label": "Geography",
+     "kind": "list:geography"
+    },
+    {
+     "key": "platform",
+     "label": "Platform",
+     "kind": "list:platform"
+    },
+    {
+     "key": "signal",
+     "label": "Signal",
+     "kind": "list:signal"
+    },
+    {
+     "key": "signal_status",
+     "label": "Signal status",
+     "kind": "list:signal_status"
+    },
+    {
+     "key": "evidence_url",
+     "label": "Evidence URL",
+     "kind": "text"
+    },
+    {
+     "key": "evidence_excerpt",
+     "label": "Evidence excerpt",
+     "kind": "text"
+    },
+    {
+     "key": "evidence_date",
+     "label": "Evidence date",
+     "kind": "date"
+    },
+    {
+     "key": "evidence_type",
+     "label": "Evidence type",
+     "kind": "list:evidence_type"
+    },
+    {
+     "key": "second_source",
+     "label": "Second source",
+     "kind": "list:yesno"
+    },
+    {
+     "key": "buyer_role",
+     "label": "Buyer role",
+     "kind": "list:buyer_role"
+    },
+    {
+     "key": "contact_route",
+     "label": "Contact route",
+     "kind": "list:contact_route"
+    },
+    {
+     "key": "offer",
+     "label": "Suggested offer",
+     "kind": "list:offer"
+    },
+    {
+     "key": "crm_status",
+     "label": "CRM status",
+     "kind": "list:crm_status"
+    },
+    {
+     "key": "existing_owner",
+     "label": "Existing owner",
+     "kind": "text"
+    },
+    {
+     "key": "disqualifier",
+     "label": "Disqualifier",
+     "kind": "list:disqualifier"
+    },
+    {
+     "key": "icp_fit",
+     "label": "ICP fit",
+     "kind": "rating"
+    },
+    {
+     "key": "solution_fit",
+     "label": "Solution fit",
+     "kind": "rating"
+    },
+    {
+     "key": "relationship",
+     "label": "Relationship path",
+     "kind": "rating"
+    },
+    {
+     "key": "viability",
+     "label": "Commercial viability",
+     "kind": "rating"
+    },
+    {
+     "key": "assignee",
+     "label": "Assignee",
+     "kind": "text"
+    },
+    {
+     "key": "status",
+     "label": "Status",
+     "kind": "list:status"
+    },
+    {
+     "key": "reviewer",
+     "label": "Reviewer",
+     "kind": "text"
+    },
+    {
+     "key": "decision_date",
+     "label": "Decision date",
+     "kind": "date"
+    },
+    {
+     "key": "outcome",
+     "label": "Outcome",
+     "kind": "list:outcome"
+    },
+    {
+     "key": "won_mrr",
+     "label": "Won MRR ($)",
+     "kind": "number"
+    },
+    {
+     "key": "notes",
+     "label": "Notes",
+     "kind": "text"
+    }
+   ]
+  },
+  "partner": {
+   "label": "Partner",
+   "sheet": "Partners",
+   "prefix": "PAR",
+   "rubric": [
+    {
+     "key": "audience",
+     "label": "Merchant audience alignment",
+     "max": 25,
+     "kind": "rating",
+     "hint": "Verified access to relevant regulated merchants"
+    },
+    {
+     "key": "influence",
+     "label": "Decision influence / access",
+     "max": 20,
+     "kind": "rating",
+     "hint": "Role in merchant platform / vendor decisions and introduction potential"
+    },
+    {
+     "key": "complementary",
+     "label": "Complementary services",
+     "max": 15,
+     "kind": "rating",
+     "hint": "Plausible value for both parties; no unapproved partner terms"
+    },
+    {
+     "key": "intent",
+     "label": "Current opportunity signals",
+     "max": 25,
+     "kind": "signal",
+     "hint": "Active merchant launches, migrations or stated needs"
+    },
+    {
+     "key": "access",
+     "label": "Relationship accessibility",
+     "max": 15,
+     "kind": "rating",
+     "hint": "Credible contact path, warm introduction, relevant principal"
+    }
+   ],
+   "signals": [
+    {
+     "name": "Agency with verified regulated client project",
+     "pts": 25,
+     "next": "Approved agency-specific email / warm intro; no partnership pitch without need",
+     "team": "Growth",
+     "mode": "outbound",
+     "reason": "Agency has verified regulated-ecommerce client work - a concrete reason to connect.",
+     "prereq": null,
+     "fallback": "Growth: contact research; Dev: technical fit only if necessary"
+    },
+    {
+     "name": "Trusted referral with identified merchant need",
+     "pts": 22,
+     "next": "Request permission for introduction; then Sales handoff",
+     "team": "Growth → Sales",
+     "mode": "outbound",
+     "reason": "A trusted referrer identified a specific merchant need through this partner.",
+     "prereq": null,
+     "fallback": "Growth: contact research; Dev: technical fit only if necessary"
+    },
+    {
+     "name": "Inferred opportunity or unidentified contact",
+     "pts": 8,
+     "next": "Research source, role, contact route; hold outreach",
+     "team": "Growth",
+     "mode": "research",
+     "reason": "Possible opportunity or unknown contact - research before anything else.",
+     "prereq": null,
+     "fallback": "Growth: contact research; Dev: technical fit only if necessary"
+    },
+    {
+     "name": "No current signal (fit only)",
+     "pts": 0,
+     "next": "Fit indicator only; no outreach",
+     "team": "Growth",
+     "mode": "research",
+     "reason": "Fits the partner profile but there is no current signal.",
+     "prereq": null,
+     "fallback": "Growth: contact research; Dev: technical fit only if necessary"
+    }
+   ],
+   "a_min_signal": 17,
+   "fields": [
+    {
+     "key": "engine_id",
+     "label": "Engine ID",
+     "kind": "text"
+    },
+    {
+     "key": "account",
+     "label": "Account",
+     "kind": "text"
+    },
+    {
+     "key": "type",
+     "label": "Type",
+     "kind": "list:partner_type"
+    },
+    {
+     "key": "website",
+     "label": "Website",
+     "kind": "text"
+    },
+    {
+     "key": "category",
+     "label": "Category",
+     "kind": "list:category"
+    },
+    {
+     "key": "geography",
+     "label": "Geography",
+     "kind": "list:geography"
+    },
+    {
+     "key": "platform",
+     "label": "Platform",
+     "kind": "list:platform"
+    },
+    {
+     "key": "signal",
+     "label": "Signal",
+     "kind": "list:signal"
+    },
+    {
+     "key": "signal_status",
+     "label": "Signal status",
+     "kind": "list:signal_status"
+    },
+    {
+     "key": "evidence_url",
+     "label": "Evidence URL",
+     "kind": "text"
+    },
+    {
+     "key": "evidence_excerpt",
+     "label": "Evidence excerpt",
+     "kind": "text"
+    },
+    {
+     "key": "evidence_date",
+     "label": "Evidence date",
+     "kind": "date"
+    },
+    {
+     "key": "evidence_type",
+     "label": "Evidence type",
+     "kind": "list:evidence_type"
+    },
+    {
+     "key": "second_source",
+     "label": "Second source",
+     "kind": "list:yesno"
+    },
+    {
+     "key": "buyer_role",
+     "label": "Buyer role",
+     "kind": "list:buyer_role"
+    },
+    {
+     "key": "contact_route",
+     "label": "Contact route",
+     "kind": "list:contact_route"
+    },
+    {
+     "key": "offer",
+     "label": "Suggested offer",
+     "kind": "list:offer"
+    },
+    {
+     "key": "crm_status",
+     "label": "CRM status",
+     "kind": "list:crm_status"
+    },
+    {
+     "key": "existing_owner",
+     "label": "Existing owner",
+     "kind": "text"
+    },
+    {
+     "key": "disqualifier",
+     "label": "Disqualifier",
+     "kind": "list:disqualifier"
+    },
+    {
+     "key": "audience",
+     "label": "Merchant audience alignment",
+     "kind": "rating"
+    },
+    {
+     "key": "influence",
+     "label": "Decision influence / access",
+     "kind": "rating"
+    },
+    {
+     "key": "complementary",
+     "label": "Complementary services",
+     "kind": "rating"
+    },
+    {
+     "key": "access",
+     "label": "Relationship accessibility",
+     "kind": "rating"
+    },
+    {
+     "key": "assignee",
+     "label": "Assignee",
+     "kind": "text"
+    },
+    {
+     "key": "status",
+     "label": "Status",
+     "kind": "list:status"
+    },
+    {
+     "key": "reviewer",
+     "label": "Reviewer",
+     "kind": "text"
+    },
+    {
+     "key": "decision_date",
+     "label": "Decision date",
+     "kind": "date"
+    },
+    {
+     "key": "outcome",
+     "label": "Outcome",
+     "kind": "list:outcome"
+    },
+    {
+     "key": "won_mrr",
+     "label": "Won MRR ($)",
+     "kind": "number"
+    },
+    {
+     "key": "notes",
+     "label": "Notes",
+     "kind": "text"
+    }
+   ]
+  }
+ },
+ "playbooks": [
+  {
+   "id": "SAMPLE-MIG-EMAIL-01",
+   "version": "1",
+   "channel": "Email",
+   "segment": "Merchant",
+   "signal": "Public migration announcement",
+   "approach": "Migration planning",
+   "status": "Approved"
+  },
+  {
+   "id": "SAMPLE-MIG-CALL-01",
+   "version": "1",
+   "channel": "Call",
+   "segment": "Merchant",
+   "signal": "Verified platform eviction / forced migration",
+   "approach": "Platform transition",
+   "status": "Approved"
+  },
+  {
+   "id": "SAMPLE-REF-INTRO-01",
+   "version": "1",
+   "channel": "Warm intro",
+   "segment": "Merchant",
+   "signal": "Trusted referral with identified merchant need",
+   "approach": "Referral follow-up (with permission)",
+   "status": "Approved"
+  },
+  {
+   "id": "SAMPLE-NOTICE-CALL-01",
+   "version": "1",
+   "channel": "Call",
+   "segment": "Merchant",
+   "signal": "Merchant-reported processor or regulator notice",
+   "approach": "Discovery on the notice",
+   "status": "Placeholder"
+  },
+  {
+   "id": "SAMPLE-AGENCY-EMAIL-01",
+   "version": "1",
+   "channel": "Email",
+   "segment": "Partner",
+   "signal": "Agency with verified regulated client project",
+   "approach": "Agency-specific note on the client project",
+   "status": "Approved"
+  },
+  {
+   "id": "SAMPLE-REF-INTRO-02",
+   "version": "1",
+   "channel": "Warm intro",
+   "segment": "Partner",
+   "signal": "Trusted referral with identified merchant need",
+   "approach": "Referral follow-up (with permission)",
+   "status": "Approved"
+  }
+ ],
+ "playbook_fields": [
+  {
+   "key": "id",
+   "label": "Playbook ID",
+   "kind": "text"
+  },
+  {
+   "key": "version",
+   "label": "Version",
+   "kind": "text"
+  },
+  {
+   "key": "channel",
+   "label": "Channel",
+   "kind": "text"
+  },
+  {
+   "key": "segment",
+   "label": "Segment",
+   "kind": "text"
+  },
+  {
+   "key": "signal",
+   "label": "Signal",
+   "kind": "text"
+  },
+  {
+   "key": "approach",
+   "label": "Approach",
+   "kind": "text"
+  },
+  {
+   "key": "status",
+   "label": "Status",
+   "kind": "text"
+  }
+ ],
+ "sample": {
+  "merchant": [
+   {
+    "engine_id": "MER-0001",
+    "type": "",
+    "existing_owner": "",
+    "disqualifier": "None",
+    "second_source": "No",
+    "assignee": "",
+    "reviewer": "",
+    "decided_days_ago": null,
+    "outcome": "Not started",
+    "won_mrr": "",
+    "notes": "Spec example: 86/100, confidence Medium.",
+    "evidence_excerpt": "\"We're moving to a new storefront next quarter.\"",
+    "account": "Merchant A",
+    "website": "merchant-a.example",
+    "category": "Vape / nicotine",
+    "geography": "United States",
+    "platform": "Shopify",
+    "signal": "Public migration announcement",
+    "signal_status": "Verified",
+    "evidence_url": "https://merchant-a.example/blog/our-new-store",
+    "days_ago": 45,
+    "evidence_type": "Company website",
+    "buyer_role": "Ecommerce / ops lead",
+    "contact_route": "Known contact",
+    "offer": "Storefront",
+    "crm_status": "Not in CRM",
+    "icp_fit": "Strong",
+    "solution_fit": "Strong",
+    "relationship": "Weak",
+    "viability": "Strong",
+    "status": "New"
+   },
+   {
+    "engine_id": "MER-0002",
+    "type": "",
+    "existing_owner": "",
+    "disqualifier": "None",
+    "second_source": "Yes",
+    "assignee": "",
+    "reviewer": "",
+    "decided_days_ago": null,
+    "outcome": "Not started",
+    "won_mrr": "",
+    "notes": "High confidence + verified trigger, so it keeps band A.",
+    "evidence_excerpt": "\"Our current platform is ending support for our category.\"",
+    "account": "Merchant D",
+    "website": "merchant-d.example",
+    "category": "Hemp / CBD",
+    "geography": "United States",
+    "platform": "Shopify",
+    "signal": "Verified platform eviction / forced migration",
+    "signal_status": "Verified",
+    "evidence_url": "https://merchant-d.example/notice",
+    "days_ago": 10,
+    "evidence_type": "Company website",
+    "buyer_role": "Owner / founder",
+    "contact_route": "Known contact",
+    "offer": "Storefront",
+    "crm_status": "In CRM - no owner",
+    "icp_fit": "Strong",
+    "solution_fit": "Strong",
+    "relationship": "Partial",
+    "viability": "Partial",
+    "status": "New"
+   },
+   {
+    "engine_id": "MER-0003",
+    "type": "",
+    "existing_owner": "",
+    "disqualifier": "None",
+    "second_source": "No",
+    "assignee": "",
+    "reviewer": "",
+    "decided_days_ago": null,
+    "outcome": "Not started",
+    "won_mrr": "",
+    "notes": "Playbook is only a placeholder, so it routes to Growth.",
+    "evidence_excerpt": "\"We received a notice from our processor.\"",
+    "account": "Merchant C",
+    "website": "merchant-c.example",
+    "category": "Other regulated",
+    "geography": "United States",
+    "platform": "Custom / other",
+    "signal": "Merchant-reported processor or regulator notice",
+    "signal_status": "Verified",
+    "evidence_url": "https://news.example/merchant-c-notice",
+    "days_ago": 30,
+    "evidence_type": "Press or announcement",
+    "buyer_role": "Compliance lead",
+    "contact_route": "Known contact",
+    "offer": "Standby",
+    "crm_status": "Not in CRM",
+    "icp_fit": "Strong",
+    "solution_fit": "Partial",
+    "relationship": "Weak",
+    "viability": "Partial",
+    "status": "New"
+   },
+   {
+    "engine_id": "MER-0004",
+    "type": "",
+    "existing_owner": "",
+    "disqualifier": "None",
+    "second_source": "No",
+    "assignee": "",
+    "reviewer": "",
+    "decided_days_ago": null,
+    "outcome": "Not started",
+    "won_mrr": "",
+    "notes": "Unknown is labelled Unknown, not scored as negative.",
+    "evidence_excerpt": "",
+    "account": "Merchant E",
+    "website": "merchant-e.example",
+    "category": "Vape / nicotine",
+    "geography": "United States",
+    "platform": "Unknown",
+    "signal": "Inferred migration or unidentified buyer",
+    "signal_status": "Inferred",
+    "evidence_url": "https://merchant-e.example/",
+    "days_ago": 20,
+    "evidence_type": "Directory or forum",
+    "buyer_role": "Unknown",
+    "contact_route": "Needs research",
+    "offer": "Storefront",
+    "crm_status": "Not in CRM",
+    "icp_fit": "Strong",
+    "solution_fit": "Unknown",
+    "relationship": "Unknown",
+    "viability": "Unknown",
+    "status": "New"
+   },
+   {
+    "engine_id": "MER-0005",
+    "type": "",
+    "existing_owner": "Sales (existing owner)",
+    "disqualifier": "None",
+    "second_source": "No",
+    "assignee": "",
+    "reviewer": "",
+    "decided_days_ago": null,
+    "outcome": "Not started",
+    "won_mrr": "",
+    "notes": "",
+    "evidence_excerpt": "\"Moving platforms soon.\"",
+    "account": "Merchant F",
+    "website": "merchant-f.example",
+    "category": "Vape / nicotine",
+    "geography": "United States",
+    "platform": "WooCommerce",
+    "signal": "Public migration announcement",
+    "signal_status": "Verified",
+    "evidence_url": "https://merchant-f.example/news",
+    "days_ago": 15,
+    "evidence_type": "Company website",
+    "buyer_role": "Owner / founder",
+    "contact_route": "Known contact",
+    "offer": "Storefront",
+    "crm_status": "Open deal",
+    "icp_fit": "Strong",
+    "solution_fit": "Partial",
+    "relationship": "Strong",
+    "viability": "Partial",
+    "status": "New"
+   },
+   {
+    "engine_id": "MER-0006",
+    "type": "",
+    "existing_owner": "",
+    "disqualifier": "None",
+    "second_source": "No",
+    "assignee": "",
+    "reviewer": "",
+    "decided_days_ago": null,
+    "outcome": "Not started",
+    "won_mrr": "",
+    "notes": "",
+    "evidence_excerpt": "\"New store coming.\"",
+    "account": "Merchant G",
+    "website": "merchant-g.example",
+    "category": "Hemp / CBD",
+    "geography": "United States",
+    "platform": "Shopify",
+    "signal": "Public migration announcement",
+    "signal_status": "Verified",
+    "evidence_url": "https://merchant-g.example/news",
+    "days_ago": 12,
+    "evidence_type": "Company website",
+    "buyer_role": "Owner / founder",
+    "contact_route": "Known contact",
+    "offer": "Storefront",
+    "crm_status": "Suppressed - opt-out / DNC",
+    "icp_fit": "Strong",
+    "solution_fit": "Strong",
+    "relationship": "Weak",
+    "viability": "Partial",
+    "status": "New"
+   },
+   {
+    "engine_id": "MER-0007",
+    "type": "",
+    "existing_owner": "",
+    "disqualifier": "Expects tax filing or remittance",
+    "second_source": "No",
+    "assignee": "",
+    "reviewer": "",
+    "decided_days_ago": null,
+    "outcome": "Not started",
+    "won_mrr": "",
+    "notes": "",
+    "evidence_excerpt": "\"We need someone to file our taxes.\"",
+    "account": "Merchant H",
+    "website": "merchant-h.example",
+    "category": "Other regulated",
+    "geography": "United States",
+    "platform": "Shopify",
+    "signal": "Merchant-reported processor or regulator notice",
+    "signal_status": "Verified",
+    "evidence_url": "https://news.example/merchant-h",
+    "days_ago": 9,
+    "evidence_type": "Press or announcement",
+    "buyer_role": "Owner / founder",
+    "contact_route": "Known contact",
+    "offer": "Compliance",
+    "crm_status": "Not in CRM",
+    "icp_fit": "Partial",
+    "solution_fit": "None",
+    "relationship": "Weak",
+    "viability": "Partial",
+    "status": "New"
+   },
+   {
+    "engine_id": "MER-0008",
+    "type": "",
+    "existing_owner": "",
+    "disqualifier": "Single gap - other TOT module",
+    "second_source": "No",
+    "assignee": "",
+    "reviewer": "",
+    "decided_days_ago": null,
+    "outcome": "Not started",
+    "won_mrr": "",
+    "notes": "",
+    "evidence_excerpt": "\"Re-platforming.\"",
+    "account": "Merchant I",
+    "website": "merchant-i.example",
+    "category": "Alcohol",
+    "geography": "United States",
+    "platform": "BigCommerce",
+    "signal": "Public migration announcement",
+    "signal_status": "Verified",
+    "evidence_url": "https://merchant-i.example/news",
+    "days_ago": 25,
+    "evidence_type": "Company website",
+    "buyer_role": "Compliance lead",
+    "contact_route": "Known contact",
+    "offer": "Other TOT module",
+    "crm_status": "Not in CRM",
+    "icp_fit": "Partial",
+    "solution_fit": "Weak",
+    "relationship": "Weak",
+    "viability": "Partial",
+    "status": "New"
+   },
+   {
+    "engine_id": "MER-0009",
+    "type": "",
+    "existing_owner": "",
+    "disqualifier": "None",
+    "second_source": "No",
+    "assignee": "",
+    "reviewer": "",
+    "decided_days_ago": null,
+    "outcome": "Not started",
+    "won_mrr": "",
+    "notes": "Same domain as Merchant A - duplicate check.",
+    "evidence_excerpt": "\"Same post.\"",
+    "account": "Merchant J",
+    "website": "https://www.merchant-a.example/shop",
+    "category": "Vape / nicotine",
+    "geography": "United States",
+    "platform": "Shopify",
+    "signal": "Public migration announcement",
+    "signal_status": "Verified",
+    "evidence_url": "https://merchant-a.example/blog/our-new-store",
+    "days_ago": 45,
+    "evidence_type": "Company website",
+    "buyer_role": "Unknown",
+    "contact_route": "Needs research",
+    "offer": "Storefront",
+    "crm_status": "Not in CRM",
+    "icp_fit": "Strong",
+    "solution_fit": "Strong",
+    "relationship": "Weak",
+    "viability": "Strong",
+    "status": "New"
+   },
+   {
+    "engine_id": "MER-0010",
+    "type": "",
+    "existing_owner": "",
+    "disqualifier": "None",
+    "second_source": "No",
+    "assignee": "",
+    "reviewer": "",
+    "decided_days_ago": null,
+    "outcome": "Not started",
+    "won_mrr": "",
+    "notes": "Fit indicator, not intent.",
+    "evidence_excerpt": "Slow mobile page speed.",
+    "account": "Merchant K",
+    "website": "merchant-k.example",
+    "category": "Hemp / CBD",
+    "geography": "United States",
+    "platform": "Shopify",
+    "signal": "Lighthouse weakness only",
+    "signal_status": "Verified",
+    "evidence_url": "https://merchant-k.example/",
+    "days_ago": 6,
+    "evidence_type": "Approved data provider",
+    "buyer_role": "Unknown",
+    "contact_route": "Needs research",
+    "offer": "Storefront",
+    "crm_status": "Not in CRM",
+    "icp_fit": "Partial",
+    "solution_fit": "Unknown",
+    "relationship": "Unknown",
+    "viability": "Unknown",
+    "status": "New"
+   },
+   {
+    "engine_id": "MER-0011",
+    "type": "",
+    "existing_owner": "",
+    "disqualifier": "None",
+    "second_source": "Yes",
+    "assignee": "Sales - Rep 1",
+    "reviewer": "Reviewer 1",
+    "decided_days_ago": 3,
+    "outcome": "Conversation",
+    "won_mrr": "",
+    "notes": "Already approved; has a named assignee.",
+    "evidence_excerpt": "Referred by an existing partner; needs age verification.",
+    "account": "Merchant L",
+    "website": "merchant-l.example",
+    "category": "Firearms / ammo",
+    "geography": "United States",
+    "platform": "Shopify",
+    "signal": "Trusted referral with identified merchant need",
+    "signal_status": "Verified",
+    "evidence_url": "https://merchant-l.example/contact",
+    "days_ago": 8,
+    "evidence_type": "Company website",
+    "buyer_role": "Owner / founder",
+    "contact_route": "Warm intro needed",
+    "offer": "Compliance",
+    "crm_status": "In CRM - owner inactive",
+    "icp_fit": "Partial",
+    "solution_fit": "Partial",
+    "relationship": "Strong",
+    "viability": "Partial",
+    "status": "Approved"
+   },
+   {
+    "engine_id": "MER-0012",
+    "type": "",
+    "existing_owner": "",
+    "disqualifier": "None",
+    "second_source": "No",
+    "assignee": "",
+    "reviewer": "",
+    "decided_days_ago": null,
+    "outcome": "Not started",
+    "won_mrr": "",
+    "notes": "Evidence is stale.",
+    "evidence_excerpt": "\"Switching stores.\"",
+    "account": "Merchant M",
+    "website": "merchant-m.example",
+    "category": "Alcohol",
+    "geography": "United States",
+    "platform": "Shopify",
+    "signal": "Public migration announcement",
+    "signal_status": "Verified",
+    "evidence_url": "https://merchant-m.example/news",
+    "days_ago": 210,
+    "evidence_type": "Company website",
+    "buyer_role": "Ecommerce / ops lead",
+    "contact_route": "Known contact",
+    "offer": "Storefront",
+    "crm_status": "Not in CRM",
+    "icp_fit": "Strong",
+    "solution_fit": "Strong",
+    "relationship": "Weak",
+    "viability": "Partial",
+    "status": "New"
+   },
+   {
+    "engine_id": "MER-0013",
+    "type": "",
+    "existing_owner": "",
+    "disqualifier": "None",
+    "second_source": "No",
+    "assignee": "",
+    "reviewer": "Reviewer 1",
+    "decided_days_ago": 5,
+    "outcome": "Not started",
+    "won_mrr": "",
+    "notes": "Deferred: outside the supported US market for now.",
+    "evidence_excerpt": "\"New platform.\"",
+    "account": "Merchant N",
+    "website": "merchant-n.example",
+    "category": "Hemp / CBD",
+    "geography": "Canada",
+    "platform": "Magento",
+    "signal": "Public migration announcement",
+    "signal_status": "Verified",
+    "evidence_url": "https://merchant-n.example/news",
+    "days_ago": 40,
+    "evidence_type": "Press or announcement",
+    "buyer_role": "Ecommerce / ops lead",
+    "contact_route": "Known contact",
+    "offer": "Storefront",
+    "crm_status": "Not in CRM",
+    "icp_fit": "Weak",
+    "solution_fit": "Weak",
+    "relationship": "Weak",
+    "viability": "Partial",
+    "status": "Deferred"
+   }
+  ],
+  "partner": [
+   {
+    "engine_id": "PAR-0001",
+    "type": "Agency",
+    "existing_owner": "",
+    "disqualifier": "None",
+    "second_source": "No",
+    "assignee": "",
+    "reviewer": "",
+    "decided_days_ago": null,
+    "outcome": "Not started",
+    "won_mrr": "",
+    "notes": "",
+    "evidence_excerpt": "Case study: launched a spirits retailer's store.",
+    "account": "Agency B",
+    "website": "agency-b.example",
+    "category": "Alcohol",
+    "geography": "United States",
+    "platform": "Shopify",
+    "signal": "Agency with verified regulated client project",
+    "signal_status": "Verified",
+    "evidence_url": "https://agency-b.example/work/spirits-shop",
+    "days_ago": 12,
+    "evidence_type": "Company website",
+    "buyer_role": "Partnerships lead",
+    "contact_route": "Known contact",
+    "offer": "Partnership",
+    "crm_status": "Not in CRM",
+    "audience": "Strong",
+    "influence": "Partial",
+    "complementary": "Partial",
+    "access": "Weak",
+    "status": "New"
+   },
+   {
+    "engine_id": "PAR-0002",
+    "type": "Consultant",
+    "existing_owner": "",
+    "disqualifier": "None",
+    "second_source": "No",
+    "assignee": "",
+    "reviewer": "",
+    "decided_days_ago": null,
+    "outcome": "Not started",
+    "won_mrr": "",
+    "notes": "Need to confirm which merchants they advise.",
+    "evidence_excerpt": "",
+    "account": "Consultant D",
+    "website": "consultant-d.example",
+    "category": "Other regulated",
+    "geography": "United States",
+    "platform": "Unknown",
+    "signal": "Inferred opportunity or unidentified contact",
+    "signal_status": "Inferred",
+    "evidence_url": "https://consultant-d.example/clients",
+    "days_ago": 20,
+    "evidence_type": "Directory or forum",
+    "buyer_role": "Compliance lead",
+    "contact_route": "Needs research",
+    "offer": "Partnership",
+    "crm_status": "In CRM - owner inactive",
+    "audience": "Partial",
+    "influence": "Unknown",
+    "complementary": "Unknown",
+    "access": "Unknown",
+    "status": "Investigate"
+   },
+   {
+    "engine_id": "PAR-0003",
+    "type": "Agency",
+    "existing_owner": "",
+    "disqualifier": "None",
+    "second_source": "Yes",
+    "assignee": "",
+    "reviewer": "Reviewer 1",
+    "decided_days_ago": 2,
+    "outcome": "Not started",
+    "won_mrr": "",
+    "notes": "Approved but has no named assignee yet.",
+    "evidence_excerpt": "Referred by a current customer for a client launch.",
+    "account": "Agency G",
+    "website": "agency-g.example",
+    "category": "Hemp / CBD",
+    "geography": "United States",
+    "platform": "BigCommerce",
+    "signal": "Trusted referral with identified merchant need",
+    "signal_status": "Verified",
+    "evidence_url": "https://agency-g.example/contact",
+    "days_ago": 7,
+    "evidence_type": "Company website",
+    "buyer_role": "Partnerships lead",
+    "contact_route": "Warm intro needed",
+    "offer": "Partnership",
+    "crm_status": "In CRM - no owner",
+    "audience": "Strong",
+    "influence": "Strong",
+    "complementary": "Partial",
+    "access": "Strong",
+    "status": "Approved"
+   },
+   {
+    "engine_id": "PAR-0004",
+    "type": "Agency",
+    "existing_owner": "Success (existing owner)",
+    "disqualifier": "None",
+    "second_source": "No",
+    "assignee": "",
+    "reviewer": "",
+    "decided_days_ago": null,
+    "outcome": "Not started",
+    "won_mrr": "",
+    "notes": "",
+    "evidence_excerpt": "Vape storefront build.",
+    "account": "Agency H",
+    "website": "agency-h.example",
+    "category": "Vape / nicotine",
+    "geography": "United States",
+    "platform": "Shopify",
+    "signal": "Agency with verified regulated client project",
+    "signal_status": "Verified",
+    "evidence_url": "https://agency-h.example/work",
+    "days_ago": 14,
+    "evidence_type": "Company website",
+    "buyer_role": "Partnerships lead",
+    "contact_route": "Known contact",
+    "offer": "Partnership",
+    "crm_status": "Current customer",
+    "audience": "Strong",
+    "influence": "Partial",
+    "complementary": "Partial",
+    "access": "Partial",
+    "status": "New"
+   },
+   {
+    "engine_id": "PAR-0005",
+    "type": "Agency",
+    "existing_owner": "",
+    "disqualifier": "None",
+    "second_source": "No",
+    "assignee": "",
+    "reviewer": "Reviewer 1",
+    "decided_days_ago": 9,
+    "outcome": "Not started",
+    "won_mrr": "",
+    "notes": "Rejected: no regulated focus.",
+    "evidence_excerpt": "",
+    "account": "Agency I",
+    "website": "agency-i.example",
+    "category": "Other ecommerce",
+    "geography": "UK / EU",
+    "platform": "WooCommerce",
+    "signal": "No current signal (fit only)",
+    "signal_status": "Inferred",
+    "evidence_url": "https://agency-i.example/",
+    "days_ago": 90,
+    "evidence_type": "Directory or forum",
+    "buyer_role": "Unknown",
+    "contact_route": "Needs research",
+    "offer": "Partnership",
+    "crm_status": "Not in CRM",
+    "audience": "Weak",
+    "influence": "Unknown",
+    "complementary": "Weak",
+    "access": "Unknown",
+    "status": "Rejected"
+   }
+  ]
+ }
+};
+/* ============================================================================= */
+</script>
+<script>
+"use strict";
+const C = CONFIG, SEG = C.segments;
+const STORE_KEY = "toi-prospect-intel-v2", REVIEWER_KEY = "toi-prospect-intel-reviewer";
+const MS_DAY = 86400000;
+const GATE_STATES = ["Suppressed","Owned — route to existing owner","Disqualified","Route to alternative TOT module"];
+
+/* ---------- lists ---------- */
+const LISTS = {
+  category: C.lists.category, geography: C.lists.geography, platform: C.lists.platform,
+  signal_status: C.plain.signal_status, yesno: C.plain.yesno, evidence_type: C.evidence_type.map(x=>x[0]),
+  buyer_role: C.plain.buyer_role, contact_route: C.plain.contact_route, offer: C.plain.offer,
+  crm_status: C.crm.map(x=>x[0]), disqualifier: C.disqualifier.map(x=>x[0]), status: C.plain.status,
+  outcome: C.plain.outcome, partner_type: C.plain.partner_type, rating: C.rating_levels.map(x=>x[0])
+};
+const FRAC = Object.fromEntries(C.rating_levels), ETYPE = Object.fromEntries(C.evidence_type);
+const CRMK = Object.fromEntries(C.crm), DQK = Object.fromEntries(C.disqualifier);
+const listOf = (seg,f) => f.kind==="rating" ? LISTS.rating : f.kind==="list:signal" ? SEG[seg].signals.map(s=>s.name) : LISTS[f.kind.slice(5)];
+const REQUIRED = new Set(["type","category","geography","platform","signal","signal_status","evidence_type","buyer_role","contact_route","offer","crm_status","status"]);
+
+/* ---------- helpers ---------- */
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const $ = (sel, el=document) => el.querySelector(sel);
+function safeUrl(u){ try{ const x=new URL(String(u||"").trim()); return (x.protocol==="https:"||x.protocol==="http:") ? x.href : null; }catch(e){ return null; } }
+function domainOf(w){ let s=String(w||"").trim().toLowerCase().replace(/^https?:\/\//,"").replace(/^www\./,""); return s.split(/[\/?#]/)[0]; }
+function parseDate(s){
+  s=String(s||"").trim(); if(!s) return null; let m;
+  if((m=s.match(/^(\d{4})-(\d{2})-(\d{2})/))) return Date.UTC(+m[1],+m[2]-1,+m[3]);
+  if((m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/))) return Date.UTC(+m[3],+m[1]-1,+m[2]);
+  return null;
+}
+const todayUTC = (()=>{const d=new Date(); return Date.UTC(d.getFullYear(),d.getMonth(),d.getDate());})();
+const iso = ms => new Date(ms).toISOString().slice(0,10);
+const money = v => { const n=parseFloat(String(v||"").replace(/[^0-9.]/g,"")); return isNaN(n)?0:n; };
+function parseCSV(text){
+  text=text.replace(/^﻿/,""); const rows=[]; let row=[],f="",q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){f+='"';i++;} else q=false; } else f+=c; }
+    else if(c==='"') q=true;
+    else if(c===","){ row.push(f); f=""; }
+    else if(c==="\n"||c==="\r"){ if(c==="\r"&&text[i+1]==="\n") i++; row.push(f); f=""; if(row.some(x=>x.trim()!=="")) rows.push(row); row=[]; }
+    else f+=c;
+  }
+  row.push(f); if(row.some(x=>x.trim()!=="")) rows.push(row);
+  return rows;
+}
+const normHeader = h => h.toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");
+const ALIAS = {suggested_offer:"offer", won_mrr:"won_mrr", playbook_id:"id"};
+
+/* ---------- data loading ---------- */
+function fromSample(seg){
+  return C.sample[seg].map(s=>{ const r={...s}; r.evidence_date=(s.days_ago==null)?"":iso(todayUTC-s.days_ago*MS_DAY);
+    r.decision_date=(s.decided_days_ago==null)?"":iso(todayUTC-s.decided_days_ago*MS_DAY); delete r.days_ago; delete r.decided_days_ago; return r; });
+}
+function tableFromCSV(text, fields){
+  const rows=parseCSV(text); if(rows.length<1) throw new Error("The tab is empty.");
+  const byLabel=Object.fromEntries(fields.map(f=>[normHeader(f.label),f.key]));
+  const heads=rows[0].map(h=>{const n=normHeader(h); return byLabel[n]||ALIAS[n]||n;});
+  const need=fields.map(f=>f.key).filter(k=>!heads.includes(k));
+  if(need.length) throw new Error("Missing columns: "+need.map(k=>(fields.find(f=>f.key===k)||{}).label||k).join(", "));
+  return rows.slice(1).map(cells=>{ const r={}; heads.forEach((h,i)=>{ r[h]=(cells[i]??"").trim(); }); return r; });
+}
+
+/* ---------- evaluation (spec sections 6-8) ---------- */
+function evaluate(r, seg, dupOf, registry){
+  const S=SEG[seg], sg=S.signals.find(s=>s.name===r.signal), issues=[], soft=[], hard=[];
+  for(const f of S.fields){
+    if(!REQUIRED.has(f.key)) continue;
+    if(f.kind!=="rating" && !f.kind.startsWith("list:")) continue;
+    if(!listOf(seg,f).includes(r[f.key])) issues.push(r[f.key] ? `Unrecognized ${f.label}: "${r[f.key]}"` : `Missing ${f.label}`);
+  }
+  for(const f of S.fields){ if(f.kind==='rating' && r[f.key] && !LISTS.rating.includes(r[f.key])) issues.push(`Unrecognized ${f.label}: "${r[f.key]}"`); }
+  const crmKind=CRMK[r.crm_status]||"", dq=DQK[r.disqualifier||"None"]||"none";
+  let state=null;
+  if(crmKind==="suppressed") state="Suppressed";
+  else if(crmKind==="owned"||(sg&&sg.mode==="owner")) state="Owned — route to existing owner";
+  else if(dq==="alt") state="Route to alternative TOT module";
+  else if(dq==="disq") state="Disqualified";
+  else {
+    if(dupOf) hard.push("Duplicate of "+dupOf);
+    if(crmKind==="check") hard.push("Pipedrive owner / suppression check not done");
+    issues.forEach(i=>hard.push(i));
+    if(hard.length) state="Needs investigation";
+  }
+  const scored = !state || (state==="Needs investigation" && !hard.length);
+  /* evidence checks */
+  const t=parseDate(r.evidence_date); let age=null;
+  if(t==null) soft.push("No valid evidence date"); else { age=Math.round((todayUTC-t)/MS_DAY); if(age<0){ soft.push("Evidence date is in the future"); age=null; } }
+  if(age!=null && age>C.stale_days) soft.push(`Stale evidence (over ${C.stale_days} days) — refresh`);
+  if(!safeUrl(r.evidence_url)) soft.push("No valid evidence link");
+  const verified = r.signal_status==="Verified";
+  if(verified && !String(r.evidence_excerpt||"").trim()) soft.push("Verified signal needs an evidence excerpt");
+  if(sg && sg.mode==="outbound" && !verified) soft.push("Signal is inferred — verify before outreach");
+  if(sg && sg.mode==="research") soft.push("Research task: "+sg.next);
+  if(["Needs research","No permitted route"].includes(r.contact_route) && !(sg&&sg.mode==="research")) soft.push("Contact route not identified");
+  /* playbook */
+  let pb=null, pbAny=null;
+  if(sg && sg.mode==="outbound"){
+    const m=registry.filter(p=>p.segment.toLowerCase()===S.label.toLowerCase() && p.signal===r.signal);
+    pb=m.find(p=>p.status==="Approved")||null; pbAny=m[0]||null;
+    if(!pb) soft.push("No approved playbook — route to Growth");
+  }
+  /* score */
+  const parts=[]; let total=0, unknown=0, sigPts=0;
+  if(scored){
+    for(const c of S.rubric){
+      let pts, note="";
+      if(c.kind==="signal"){ const base=sg?sg.pts:0; pts=verified?base:Math.min(base,10); sigPts=pts; if(!verified) note="inferred, capped"; }
+      else { const lv=r[c.key]||"Unknown"; pts=Math.round(c.max*(FRAC[lv]??0)); if(lv==="Unknown"){unknown++; note="Unknown";} else note=lv; }
+      parts.push({label:c.label,pts,max:c.max,note,hint:c.hint}); total+=pts;
+    }
+  }
+  const conf=(ETYPE[r.evidence_type]||0)+(verified?C.conf_extra.verified:0)+(r.second_source==="Yes"?C.conf_extra.second_source:0)+(String(r.evidence_excerpt||"").trim()?C.conf_extra.excerpt:0);
+  const confLabel=conf>=C.conf_bands.high?"High":conf>=C.conf_bands.medium?"Medium":"Low";
+  let band=null, capped=false;
+  if(scored){
+    band=total>=85?"A":total>=70?"B":total>=50?"C":"D";
+    if(band==="A" && !(verified && confLabel==="High" && sigPts>=S.a_min_signal)){ band="B"; capped=true; }
+  }
+  if(!state) state = soft.length ? "Needs investigation" : "Ready for review";
+  /* routing, action, prerequisites */
+  let action, team;
+  if(state==="Suppressed"){ action="No contact — suppressed"; team="None"; }
+  else if(state.startsWith("Owned")){ action="Notify existing owner; no new outbound"+(r.existing_owner?" ("+r.existing_owner+")":""); team=sg&&sg.mode==="owner"?sg.team:"Sales / Success"; }
+  else if(state==="Disqualified"){ action="Disqualified — no outreach"; team="Growth (close out)"; }
+  else if(state.startsWith("Route to")){ action="Route single-gap need to the right TOT module"; team="Growth (route)"; }
+  else if(hard.length){ action="Resolve first: "+hard[0]; team="Growth"; }
+  else if(sg&&sg.mode==="research"){ action="Research task: "+sg.next; team=sg.team; }
+  else if(pb){ action=`${pb.channel} — ${pb.id} v${pb.version}`; team=sg.team; }
+  else if(sg){ action="No approved playbook — route to Growth"+(pbAny?` (${pbAny.id} is ${pbAny.status.toLowerCase()})`:""); team="Growth"; }
+  else { action="—"; team="Growth"; }
+  const prereq=[];
+  if(r.buyer_role==="Unknown"||r.contact_route!=="Known contact") prereq.push("Confirm decision-maker and contact route");
+  if(sg&&sg.prereq) prereq.push(sg.prereq);
+  if(seg==="merchant"){
+    if(/migration/i.test(r.signal) && r.platform!=="Shopify") prereq.push("Non-Shopify migration is premium-assisted — confirm with Product before claims");
+    if(r.category!=="Vape / nicotine"||r.geography!=="United States") prereq.push("Checkout enforcement is documented only for US vape/nicotine — confirm with Product before external claims");
+  }
+  prereq.push("Named assignee before execution");
+  return {state, hard, soft, issues, scored, parts, total, unknown, conf, confLabel, band, capped, age, pb, pbAny, action, team, prereq, sg, verified,
+          canApprove: state==="Ready for review"};
+}
+const bandTier = b => b==="A"?["t-hi","Band A"]:b==="B"?["t-mid","Band B"]:["t-lo","Band "+b];
+
+/* ---------- state ---------- */
+let TABLES={merchant:[],partner:[]}, REGISTRY=[], MODE="sample", decisions={}, filters={seg:"",sig:"",q:""}, view=(location.hash||"#review").slice(1);
+let reviewer=""; try{ reviewer=localStorage.getItem(REVIEWER_KEY)||""; }catch(e){}
+try{ decisions=JSON.parse(localStorage.getItem(STORE_KEY)||"{}"); }catch(e){ decisions={}; }
+const save = () => { try{ localStorage.setItem(STORE_KEY, JSON.stringify(decisions)); }catch(e){} };
+const keyOf = (seg,r) => seg+"|"+r.account+"|"+domainOf(r.website);
+
+function model(){
+  const out=[], seen=new Map();
+  for(const seg of ["merchant","partner"]){
+    TABLES[seg].forEach((r0,i)=>{
+      const k=keyOf(seg,r0), o=decisions[k]||{};
+      const r={...r0};
+      if(o.status){ r.status=o.status; r.reviewer=o.by; r.decision_date=o.on; }
+      if(o.assignee!=null) r.assignee=o.assignee;
+      if(o.outcome!=null) r.outcome=o.outcome;
+      if(o.mrr!=null) r.won_mrr=o.mrr;
+      const d=domainOf(r.website); let dupOf=null;
+      if(d){ if(seen.has(d)) dupOf=seen.get(d); else seen.set(d,r.account); }
+      const e=evaluate(r,seg,dupOf,REGISTRY);
+      out.push({r,e,seg,k,i,dupOf});
+    });
+  }
+  return out;
+}
+function bucket(m){
+  if(GATE_STATES.includes(m.e.state)) return "parked";
+  if(m.r.status==="Rejected"||m.r.status==="Deferred") return "parked";
+  if(m.r.status==="Approved") return "approved";
+  return "review";
+}
+const rankKey = m => [m.e.scored?0:1, m.e.state==="Ready for review"?0:1, -(m.e.total||0), m.i];
+function cmp(a,b){ const x=rankKey(a), y=rankKey(b); for(let i=0;i<x.length;i++){ if(x[i]!==y[i]) return x[i]<y[i]?-1:1; } return 0; }
+const segLabel = seg => SEG[seg].label;
+
+/* ---------- rendering ---------- */
+function card(m, mode){
+  const {r,e,seg}=m, [tc,tl]=e.scored?bandTier(e.band):["t-lo","Not scored"];
+  const link=safeUrl(r.evidence_url), site=safeUrl(/^https?:/i.test(r.website)?r.website:"https://"+domainOf(r.website));
+  let st=e.state; if(r.status==="Rejected") st="Rejected"; else if(r.status==="Deferred"&&!GATE_STATES.includes(e.state)) st="Deferred"; else if(r.status==="Approved") st=e.canApprove?"Approved":"Approved — fix before handoff";
+  const why=[...e.hard,...e.soft].map(g=>`<span class="tag bad">${esc(g)}</span>`).join("");
+  const info=[`<span class="tag">${esc(segLabel(seg))}${r.type?" · "+esc(r.type):""}</span>`,r.category&&`<span class="tag">${esc(r.category)}</span>`,r.geography&&`<span class="tag">${esc(r.geography)}</span>`,
+    r.platform&&`<span class="tag">${esc(r.platform)}</span>`, r.status==="Revise"&&`<span class="tag warn">Revision requested</span>`, r.status==="Investigate"&&`<span class="tag warn">Being investigated</span>`,
+    e.unknown?`<span class="tag warn">${e.unknown} unknown</span>`:"" ].filter(Boolean).join("");
+  const k=esc(m.k), nm=!reviewer;
+  const why2 = nm?'title="Enter your name in “Reviewing as” first"':"";
+  let btns="";
+  if(mode==="review"){
+    btns=`<button class="btn primary" data-act="Approved" data-k="${k}" ${(!e.canApprove||nm)?"disabled":""} ${why2}>Approve</button>
+      <button class="btn" data-act="Investigate" data-k="${k}" ${nm||r.status==="Investigate"?"disabled":""} ${why2}>Needs research</button>
+      <button class="btn" data-act="Revise" data-k="${k}" ${nm||r.status==="Revise"?"disabled":""} ${why2}>Revise</button>
+      <button class="btn" data-act="Deferred" data-k="${k}" ${nm?"disabled":""} ${why2}>Defer</button>
+      <button class="btn danger" data-act="Rejected" data-k="${k}" ${nm?"disabled":""} ${why2}>Reject</button>`;
+  } else if(mode==="approved"){
+    const stages=LISTS.outcome.map(o=>`<option ${o===r.outcome?"selected":""}>${esc(o)}</option>`).join("");
+    btns=`<label>Assignee <input data-assignee="${k}" value="${esc(r.assignee)}" placeholder="Named person" size="16"></label>
+      <label>Outcome <select data-outcome="${k}">${stages}</select></label>
+      ${r.outcome==="Won"?`<label>MRR $ <input data-mrr="${k}" value="${esc(r.won_mrr)}" size="7" inputmode="decimal"></label>`:""}
+      <button class="btn" data-act="New" data-k="${k}" ${nm?"disabled":""}>Send back to review</button>`;
+  } else if(mode==="parked" && (r.status==="Rejected"||r.status==="Deferred") && !GATE_STATES.includes(e.state)){
+    btns=`<button class="btn" data-restore="${k}" ${nm?"disabled":""} ${why2}>Re-open for review</button>`;
+  }
+  const parts=e.parts.map(p=>`<div class="part" title="${esc(p.hint)}"><b>${p.pts} / ${p.max}</b>${esc(p.label)}${p.note?` · ${esc(p.note)}`:""}</div>`).join("");
+  const timing = (e.state==="Ready for review"||r.status==="Approved") ? C.timing : "—";
+  const dateTxt = r.decision_date ? ` on ${esc(r.decision_date)}` : "";
+  const assigneeLine = r.status==="Approved" ? (r.assignee?` · <b>${esc(r.assignee)}</b>`:` · <span class="tag bad">Needs named assignee</span>`) : "";
+  return `<article class="card ${GATE_STATES.includes(e.state)?"gated":""}">
+  <div class="top"><div class="main">
+    <div class="name">${esc(r.account)} <small>${esc(r.engine_id)}</small></div>
+    <div class="row"><span class="tag state">${esc(st)}</span></div>
+    <div class="row">Signal: <b>${esc(r.signal)}</b> · ${esc(r.signal_status)}${e.age!=null?` · ${e.age} days ago`:""}</div>
+    <div class="row">Action: <b>${esc(e.action)}</b></div>
+    <div class="row">Next-action owner: <b>${esc(e.team)}</b>${assigneeLine}</div>
+    <div class="tags">${info}${why}</div>
+  </div>
+  <div class="fit ${tc}" title="Review-order aid only — not Sales qualification">${e.scored?`<span class="big">${e.total}</span><span class="of">/100</span><small>${tl}${e.capped?"*":""}</small>`:`<span class="big">—</span><small>${tl}</small>`}<span class="cf">Confidence: ${e.confLabel} (${e.conf})</span></div></div>
+  <div class="actions">${btns}</div>
+  <details><summary>Details, evidence and score</summary>
+    <dl>
+      <dt>Website</dt><dd>${site?`<a href="${esc(site)}" target="_blank" rel="noopener noreferrer">${esc(domainOf(r.website))}</a>`:esc(r.website||"—")}</dd>
+      <dt>Evidence</dt><dd>${link?`<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc(link.length>70?link.slice(0,67)+"…":link)}</a>`:"—"} · observed ${esc(r.evidence_date||"no date")} · ${esc(r.evidence_type||"")}${r.evidence_excerpt?`<blockquote>${esc(r.evidence_excerpt)}</blockquote>`:""}</dd>
+      <dt>Why now</dt><dd>${esc(e.sg?e.sg.reason:"—")}</dd>
+      <dt>Approach</dt><dd>${esc(e.pb?e.pb.approach:"—")}</dd>
+      <dt>Suggested offer</dt><dd>${esc(r.offer||"—")} <span class="sub">(subject to supported platform and requirements)</span></dd>
+      <dt>Prerequisites</dt><dd><ul>${e.prereq.map(p=>`<li>${esc(p)}</li>`).join("")}</ul></dd>
+      <dt>If blocked</dt><dd>${esc(e.sg?e.sg.fallback:"—")}</dd>
+      <dt>Timing</dt><dd>${esc(timing)}</dd>
+      <dt>Buyer / contact</dt><dd>${esc(r.buyer_role||"—")} · ${esc(r.contact_route||"—")}</dd>
+      <dt>CRM</dt><dd>${esc(r.crm_status||"—")}${r.existing_owner?" · "+esc(r.existing_owner):""}${r.disqualifier&&r.disqualifier!=="None"?" · "+esc(r.disqualifier):""}</dd>
+      <dt>Confidence</dt><dd>${e.conf}/100 (${e.confLabel}) — ${esc(r.evidence_type||"no source type")}${e.verified?", verified":", inferred"}${r.second_source==="Yes"?", second source":""}${String(r.evidence_excerpt||"").trim()?", excerpt captured":""}</dd>
+      <dt>Review</dt><dd>${esc(r.status)}${r.reviewer?" by "+esc(r.reviewer):""}${dateTxt}</dd>
+      ${r.notes?`<dt>Notes</dt><dd>${esc(r.notes)}</dd>`:""}
+    </dl>
+    ${e.scored?`<div class="parts">${parts}</div><p class="sub">Rubric ${esc(C.rubric_version)} · ${esc(segLabel(seg))} ranking only${e.capped?" · *Score is in the A range, but band A needs a verified, high-confidence trigger":""}</p>`:`<p class="sub">Not scored: hard gates run before scoring.</p>`}
+  </details>
+</article>`;
+}
+
+function filtered(list){
+  return list.filter(m=>(!filters.seg||m.seg===filters.seg)&&(!filters.sig||m.r.signal===filters.sig)&&
+    (!filters.q||(m.r.account+" "+m.r.website+" "+m.r.engine_id).toLowerCase().includes(filters.q.toLowerCase())));
+}
+function filterBar(){
+  const sigs=[...new Set(["merchant","partner"].flatMap(s=>SEG[s].signals.map(x=>x.name)))];
+  const opt=(arr,sel)=>arr.map(v=>`<option ${v===sel?"selected":""}>${esc(v)}</option>`).join("");
+  return `<div class="tools">
+    <input class="grow" id="f-q" type="search" placeholder="Search account, website or ID" value="${esc(filters.q)}" aria-label="Search">
+    <select id="f-seg" aria-label="Segment"><option value="">Merchants and partners</option><option value="merchant" ${filters.seg==="merchant"?"selected":""}>Merchants</option><option value="partner" ${filters.seg==="partner"?"selected":""}>Partners</option></select>
+    <select id="f-sig" aria-label="Signal"><option value="">All signals</option>${opt(sigs,filters.sig)}</select>
+  </div>`;
+}
+function reviewerBar(){
+  return `<div class="tools"><label for="rv">Reviewing as</label><input id="rv" value="${esc(reviewer)}" placeholder="Your name (required to decide)" size="26" autocomplete="name"></div>`;
+}
+function changesBanner(){
+  const n=Object.keys(decisions).length; if(!n) return "";
+  return `<div class="banner"><b>${n} change${n>1?"s":""} saved in this browser only.</b> The page can’t write to the sheet — copy them and update the matching columns (Status, Reviewer, Decision date, Assignee, Outcome) there.
+   <div class="actions"><button class="btn" data-do="copy-changes">Copy changes</button><button class="btn" data-do="reset">Reset to sheet values</button></div></div>`;
+}
+
+function vReview(M){
+  const q=M.filter(m=>bucket(m)==="review"), list=filtered(q).sort(cmp), ready=list.filter(m=>m.e.canApprove).length;
+  return `${changesBanner()}${reviewerBar()}
+  <p class="sub" style="margin:0 0 12px">${q.length} waiting for Growth review · ${ready} ready to approve${list.length<q.length?" (filtered)":""}. Approving needs a clean evidence check and an approved playbook; everything else stays here as a research task.</p>
+  ${filterBar()}
+  ${list.length?list.map(m=>card(m,"review")).join(""):`<div class="empty">Nothing waiting for review.</div>`}`;
+}
+function vApproved(M){
+  const a=filtered(M.filter(m=>bucket(m)==="approved")).sort(cmp);
+  const execReady=a.filter(m=>m.e.canApprove&&m.r.assignee).length;
+  return `${changesBanner()}${reviewerBar()}
+  <p class="sub" style="margin:0 0 12px">${a.length} approved · ${execReady} ready to execute (a named assignee is required before execution). Record the outcome here as each one moves forward.</p>
+  ${filterBar()}
+  ${a.length?a.map(m=>card(m,"approved")).join(""):`<div class="empty">Nothing approved yet.</div>`}`;
+}
+function vParked(M){
+  const p=filtered(M.filter(m=>bucket(m)==="parked")).sort((a,b)=>a.e.state.localeCompare(b.e.state)||cmp(a,b));
+  return `${changesBanner()}${reviewerBar()}
+  <p class="sub" style="margin:0 0 12px">Owned, suppressed, disqualified, routed elsewhere, deferred or rejected. A rejected or suppressed account does not re-enter as new without an explicit re-open.</p>
+  ${filterBar()}
+  ${p.length?p.map(m=>card(m,"parked")).join(""):`<div class="empty">Nothing parked.</div>`}`;
+}
+
+/* ---------- digest ---------- */
+const OUT=C.plain.outcome, reached=(m,i)=>{ const x=OUT.indexOf(m.r.outcome); return x>=i && x<=4; };
+function digestData(M){
+  const rev=M.filter(m=>bucket(m)==="review"), app=M.filter(m=>bucket(m)==="approved"), park=M.filter(m=>bucket(m)==="parked");
+  const decided=M.filter(m=>["Approved","Revise","Deferred","Rejected"].includes(m.r.status));
+  const acc=decided.length?Math.round(100*decided.filter(m=>m.r.status==="Approved").length/decided.length):null;
+  const catches={dup:M.filter(m=>m.dupOf).length, supp:M.filter(m=>m.e.state==="Suppressed").length, own:M.filter(m=>m.e.state.startsWith("Owned")).length,
+    dq:M.filter(m=>m.e.state==="Disqualified"||m.e.state.startsWith("Route to")).length, crm:M.filter(m=>m.e.hard.some(h=>/Pipedrive/.test(h))).length};
+  const funnel=[["Approved accounts",app.length],["Conversation",app.filter(m=>reached(m,1)).length],["Sales-accepted opportunity",app.filter(m=>reached(m,2)).length],
+    ["Proposal",app.filter(m=>reached(m,3)).length],["Won",app.filter(m=>reached(m,4)).length]];
+  const mrr=app.filter(m=>m.r.outcome==="Won").reduce((a,m)=>a+money(m.r.won_mrr),0);
+  return {rev,app,park,acc,catches,funnel,mrr,top:rev.filter(m=>m.e.canApprove).sort(cmp).slice(0,5),inv:rev.filter(m=>!m.e.canApprove&&m.e.state==="Needs investigation").length};
+}
+function digestText(M){
+  const d=digestData(M), mon=iso(todayUTC-((new Date(todayUTC).getUTCDay()+6)%7)*MS_DAY);
+  let t=`Weekly prospect intelligence — week of ${mon}\nReady for Growth review: ${d.rev.filter(m=>m.e.canApprove).length} · Needs investigation: ${d.inv} · Approved: ${d.app.length} · Parked: ${d.park.length}\n\n`;
+  t+="Top accounts awaiting Growth approval\n";
+  if(d.top.length) d.top.forEach(m=>{ t+=`- ${m.r.account} (${segLabel(m.seg)}) — ${m.e.total}/100, band ${m.e.band}${m.e.capped?"*":""}, confidence ${m.e.confLabel}\n  Signal: ${m.r.signal} (${m.r.evidence_date})\n  Why now: ${m.e.sg?m.e.sg.reason:""}\n  Action: ${m.e.action} · Owner: ${m.e.team}\n  Evidence: ${m.r.evidence_url}\n`; });
+  else t+="- none\n";
+  t+="\nApproved\n"; if(d.app.length) d.app.forEach(m=>{ t+=`- ${m.r.account}: ${m.e.action} · ${m.r.assignee||"NEEDS NAMED ASSIGNEE"} · outcome: ${m.r.outcome}\n`; }); else t+="- none\n";
+  t+=`\nFunnel: ${d.funnel.map(f=>f[0]+" "+f[1]).join(" → ")} · Won MRR $${d.mrr}\n`;
+  return t;
+}
+function vDigest(M){
+  const d=digestData(M);
+  const topRows=d.top.map(m=>{const r=m.r,l=safeUrl(r.evidence_url),[tc]=bandTier(m.e.band); return `<tr>
+    <td><b>${esc(r.account)}</b><br><span class="sub">${esc(segLabel(m.seg))} · ${esc(r.category)}</span></td>
+    <td>${esc(r.signal)}<br><span class="sub">${esc(m.e.sg?m.e.sg.reason:"")}</span>${l?`<br><a href="${esc(l)}" target="_blank" rel="noopener noreferrer">Evidence</a> · ${esc(r.evidence_date)}`:""}</td>
+    <td>${esc(m.e.action)}</td><td>${esc(m.e.team)}</td><td>${m.e.total} (${m.e.band}${m.e.capped?"*":""})</td></tr>`;}).join("");
+  const maxF=Math.max(1,d.funnel[0][1]);
+  const fun=d.funnel.map(([k,v])=>`<tr><td>${esc(k)}</td><td style="width:45%"><div class="bar"><i style="width:${v/maxF*100}%"></i></div></td><td>${v}</td></tr>`).join("");
+  return `<div class="stats">
+    <div class="stat"><b>${d.rev.filter(m=>m.e.canApprove).length}</b><span>Ready for Growth review</span></div>
+    <div class="stat"><b>${d.inv}</b><span>Needs investigation</span></div>
+    <div class="stat"><b>${d.app.length}</b><span>Approved</span></div>
+    <div class="stat"><b>${d.park.length}</b><span>Parked</span></div></div>
+  <h2>Top accounts awaiting approval</h2>
+  ${d.top.length?`<div class="scroll"><table><thead><tr><th>Account</th><th>Signal and why now</th><th>Action</th><th>Owner</th><th>Score</th></tr></thead><tbody>${topRows}</tbody></table></div>`:`<div class="empty">Nothing ready for approval.</div>`}
+  <h2>Outcomes: approved account → won MRR</h2>
+  <div class="scroll"><table><tbody>${fun}</tbody></table></div>
+  <p class="sub">Won MRR: <b>$${d.mrr.toLocaleString()}</b></p>
+  <h2>Pilot scorecard</h2>
+  <div class="stats">
+    <div class="stat"><b>${d.acc==null?"—":d.acc+"%"}</b><span>Recommendation acceptance</span></div>
+    <div class="stat"><b>${d.catches.dup+d.catches.supp+d.catches.own+d.catches.crm}</b><span>Duplicate / suppression / ownership catches</span></div>
+    <div class="stat"><b>${d.catches.dq}</b><span>Disqualified or re-routed</span></div></div>
+  <p class="sub">Judge the pilot on acceptance, evidence quality, catches, time saved and qualified opportunities — not list volume. Time saved is not measured in this prototype.</p>
+  <h2>Copy for Slack or email</h2>
+  <pre id="rtext">${esc(digestText(M))}</pre>
+  <div class="actions"><button class="btn primary" data-do="copy-report">Copy digest</button><button class="btn" data-do="export">Export all as CSV</button></div>`;
+}
+
+/* ---------- how it works ---------- */
+function vHow(){
+  const rub=seg=>`<h3>${esc(SEG[seg].label)} rubric (100 points)</h3><div class="scroll"><table><thead><tr><th>Category</th><th>Max</th><th>How it is set</th></tr></thead><tbody>${
+    SEG[seg].rubric.map(c=>`<tr><td>${esc(c.label)}</td><td>${c.max}</td><td>${c.kind==="signal"?"Derived from the signal: verified = full signal points, inferred = capped at 10":"Dropdown: Strong / Partial / Weak / None / Unknown"}<br><span class="sub">${esc(c.hint)}</span></td></tr>`).join("")}</tbody></table></div>`;
+  const sigT=seg=>`<h3>${esc(SEG[seg].label)} signals and routing</h3><div class="scroll"><table><thead><tr><th>Signal / state</th><th>Pts</th><th>Next action</th><th>Team</th></tr></thead><tbody>${
+    SEG[seg].signals.map(s=>`<tr><td>${esc(s.name)}</td><td>${s.pts}</td><td>${esc(s.next)}</td><td>${esc(s.team)}</td></tr>`).join("")}</tbody></table></div>`;
+  const reg=`<div class="scroll"><table><thead><tr><th>ID</th><th>Ver.</th><th>Channel</th><th>Segment</th><th>Signal</th><th>Status</th></tr></thead><tbody>${
+    REGISTRY.length?REGISTRY.map(p=>`<tr><td>${esc(p.id)}</td><td>${esc(p.version)}</td><td>${esc(p.channel)}</td><td>${esc(p.segment)}</td><td>${esc(p.signal)}</td><td>${esc(p.status)}</td></tr>`).join(""):`<tr><td colspan="6">No playbooks loaded.</td></tr>`}</tbody></table></div>`;
+  return `<h2 style="margin-top:8px">Workflow</h2>
+  <div class="flow">
+   <div class="stage"><span class="num">1</span><b>Discover, normalize, deduplicate</b><p>Approved public and company data only. <b>Now:</b> a person adds a row with evidence. <b>Later:</b> scheduled jobs and the existing site scan add candidates.</p></div>
+   <div class="stage"><span class="num">2</span><b>Hard gates before scoring or outbound</b><p>Existing owner, open deal, current customer, suppression / opt-out, duplicates, disqualifiers (unsupported category, tax-filing or processor-approval expectations, dispensaries). Gated accounts are not scored and are never contacted.</p></div>
+   <div class="stage"><span class="num">3</span><b>Signal, evidence and score</b><p>Every verified signal needs a source link, excerpt and observed date. Scores are review-order aids only. Unknown is shown as Unknown, not as negative. Confidence is shown separately.</p></div>
+   <div class="stage"><span class="num">4</span><b>Action from the playbook registry</b><p>Only an approved playbook ID and version can be recommended. If none exists: “No approved playbook — route to Growth”. Nothing is ever fabricated or sent.</p></div>
+   <div class="stage"><span class="num">5</span><b>Growth review → named assignment → outcome</b><p>Growth approves, revises, defers or rejects every recommendation. Approved accounts need a named assignee, then track conversation → opportunity → proposal → won MRR.</p></div>
+  </div>
+  <h2>Ranking (hypotheses, not validated thresholds)</h2>
+  <p class="sub">Rubric ${esc(C.rubric_version)}. Austin must approve numerical ranking as a review aid. Bands: A 85–100, B 70–84, C 50–69, D 0–49. <b>Band A also needs a verified, high-confidence trigger</b> (merchant intent at least 20 of 30; the partner equivalent of ${SEG.partner.a_min_signal} of 25 is my assumption). Otherwise it shows as B*.</p>
+  ${rub("merchant")}${rub("partner")}
+  <h3>Confidence (separate from score)</h3>
+  <p class="sub">Evidence type (${C.evidence_type.map(x=>esc(x[0])+" "+x[1]).join(", ")}) + verified ${C.conf_extra.verified} + second source ${C.conf_extra.second_source} + excerpt captured ${C.conf_extra.excerpt}. High ≥ ${C.conf_bands.high}, Medium ≥ ${C.conf_bands.medium}. A single source rarely reaches High.</p>
+  <h2>Signals and routing</h2>${sigT("merchant")}${sigT("partner")}
+  <h2>Playbook registry</h2>
+  <p class="sub">IDs starting with SAMPLE- are placeholders for this demo. The real registry must use the existing ECOM and 43-series IDs, with IDs and versions approved by Growth.</p>${reg}
+  <h2>Not decided here</h2>
+  <p class="sub">Contact permission (Compliance). Pricing, claims and partner terms (Austin). Whether compliance triggers may drive outbound (Austin). Standby definition, vertical eligibility, firearms scope and cold-outreach status are open product conflicts, so none of them is encoded as a business rule. Never infer a legal violation or active pain from a vertical, a technology or a Lighthouse score.</p>`;
+}
+
+const TABS=[["review","Review queue"],["approved","Approved"],["parked","Parked"],["digest","Weekly digest"],["how","How it works"]];
+function render(){
+  const M=model(); const cnt={review:0,approved:0,parked:0}; M.forEach(m=>cnt[bucket(m)]++);
+  $("#tabs").innerHTML=TABS.map(([k,l])=>`<button role="tab" id="tab-${k}" aria-selected="${view===k}" data-tab="${k}">${l}${cnt[k]!=null?`<span class="n">${cnt[k]}</span>`:""}</button>`).join("");
+  $("#view").innerHTML = view==="approved"?vApproved(M): view==="parked"?vParked(M): view==="digest"?vDigest(M): view==="how"?vHow(): vReview(M);
+}
+function setMode(label, live){ const b=$("#mode"); b.textContent=label; b.className="badge"+(live?" live":""); }
+
+/* ---------- events ---------- */
+const today = () => iso(todayUTC);
+document.addEventListener("click", ev=>{
+  const t=ev.target.closest("[data-tab],[data-act],[data-do],[data-restore]"); if(!t) return;
+  if(t.dataset.tab){ view=t.dataset.tab; history.replaceState(null,"","#"+view); render(); return; }
+  if(t.dataset.act){
+    const k=t.dataset.k, o={...(decisions[k]||{})}; o.status=t.dataset.act; o.by=reviewer; o.on=today(); decisions[k]=o; save(); render(); return;
+  }
+  if(t.dataset.restore){
+    if(!window.confirm("Re-open this account for review? Rejected or deferred accounts only come back with an explicit review.")) return;
+    const k=t.dataset.restore, o={...(decisions[k]||{})}; o.status="New"; o.by=reviewer; o.on=today(); decisions[k]=o; save(); render(); return;
+  }
+  const a=t.dataset.do, M=model();
+  if(a==="reset"){ decisions={}; save(); render(); }
+  if(a==="copy-changes"){ copy(Object.entries(decisions).map(([k,v])=>[k.split("|")[1],v.status||"",v.by||"",v.on||"",v.assignee||"",v.outcome||"",v.mrr||""].join(" | ")).join("\n"), t); }
+  if(a==="copy-report"){ copy(digestText(M), t); }
+  if(a==="export"){ exportCSV(M); }
+});
+document.addEventListener("input", ev=>{
+  const id=ev.target.id;
+  if(id==="f-q"){ filters.q=ev.target.value; const pos=ev.target.selectionStart; render(); const n=$("#f-q"); if(n){ n.focus(); n.setSelectionRange(pos,pos); } }
+  if(id==="rv"){ const was=!!reviewer; reviewer=ev.target.value.trim(); try{ localStorage.setItem(REVIEWER_KEY,reviewer); }catch(e){}
+    if(was!==!!reviewer){ const pos=ev.target.selectionStart; render(); const n=$("#rv"); if(n){ n.focus(); n.setSelectionRange(pos,pos); } } }
+});
+document.addEventListener("change", ev=>{
+  const t=ev.target, id=t.id;
+  if(id==="f-seg"){ filters.seg=t.value; render(); $("#f-seg").focus(); }
+  if(id==="f-sig"){ filters.sig=t.value; render(); $("#f-sig").focus(); }
+  const upd=(k,f,v)=>{ const o={...(decisions[k]||{})}; o[f]=v; decisions[k]=o; save(); render(); };
+  if(t.dataset.assignee) upd(t.dataset.assignee,"assignee",t.value.trim());
+  if(t.dataset.outcome) upd(t.dataset.outcome,"outcome",t.value);
+  if(t.dataset.mrr) upd(t.dataset.mrr,"mrr",t.value.trim());
+});
+function copy(text, btn){
+  const done=()=>{ const o=btn.textContent; btn.textContent="Copied"; setTimeout(()=>btn.textContent=o,1500); };
+  if(navigator.clipboard&&window.isSecureContext) navigator.clipboard.writeText(text).then(done,()=>fallbackCopy(text,done));
+  else fallbackCopy(text,done);
+}
+function fallbackCopy(text,done){ const ta=document.createElement("textarea"); ta.value=text; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); try{document.execCommand("copy");done();}catch(e){} ta.remove(); }
+function csvCell(v){ v=String(v??""); if(/^[=+\-@]/.test(v)) v="'"+v; return /[",\n\r]/.test(v)?`"${v.replace(/"/g,'""')}"`:v; }
+function exportCSV(M){
+  const keys=["engine_id","account","website","category","geography","platform","signal","signal_status","evidence_url","evidence_date","crm_status","status","reviewer","decision_date","assignee","outcome","won_mrr"];
+  const head=["Segment",...keys,"State","Score","Band","Confidence","Action","Owner team","Checks"];
+  const lines=[head.map(csvCell).join(",")].concat(M.map(m=>[segLabel(m.seg),...keys.map(k=>m.r[k]),m.e.state,m.e.scored?m.e.total:"",m.e.band||"",m.e.confLabel+" ("+m.e.conf+")",m.e.action,m.e.team,[...m.e.hard,...m.e.soft].join("; ")].map(csvCell).join(",")));
+  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([lines.join("\r\n")],{type:"text/csv"})); a.download="prospect-intelligence-"+today()+".csv"; document.body.appendChild(a); a.click(); a.remove();
+}
+window.addEventListener("hashchange",()=>{ const h=location.hash.slice(1); if(TABS.some(t=>t[0]===h)){ view=h; render(); } });
+
+/* ---------- start ---------- */
+async function getText(url){ const res=await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error("HTTP "+res.status); return res.text(); }
+(async function init(){
+  if(!TABS.some(t=>t[0]===view)) view="review";
+  const U=SHEET_CSV_URLS, live=U.merchant||U.partner;
+  if(live){
+    try{
+      for(const seg of ["merchant","partner"]) TABLES[seg]=U[seg]?tableFromCSV(await getText(U[seg]),SEG[seg].fields).filter(r=>r.account):[];
+      REGISTRY=U.playbooks?tableFromCSV(await getText(U.playbooks),C.playbook_fields).filter(p=>p.id):[];
+      setMode("Live sheet",true);
+      if(!U.playbooks) $("#msg").innerHTML=`<div class="banner warn"><b>No playbook registry URL set.</b> Every outbound recommendation will read “No approved playbook — route to Growth”.</div>`;
+    }catch(e){
+      TABLES={merchant:fromSample("merchant"),partner:fromSample("partner")}; REGISTRY=C.playbooks; setMode("Sample data (sheet failed)",false);
+      $("#msg").innerHTML=`<div class="banner err"><b>Couldn’t load the Google Sheet:</b> ${esc(e.message)}. Showing sample data instead.</div>`;
+    }
+  } else {
+    TABLES={merchant:fromSample("merchant"),partner:fromSample("partner")}; REGISTRY=C.playbooks; setMode("Sample data",false);
+    $("#msg").innerHTML=`<div class="banner"><b>Sample data.</b> Names, links and playbook IDs are placeholders. Decisions you click are saved in this browser only.</div>`;
+  }
+  render();
+})();
+</script>
+</body>
+</html>
