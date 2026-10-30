@@ -95,7 +95,18 @@ pre{background:var(--surface);border:1px solid var(--line);border-radius:8px;pad
 .stage .num{display:inline-block;width:24px;height:24px;line-height:24px;text-align:center;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:13px;font-weight:700;margin-right:8px}
 .stage p{margin:4px 0 0;color:var(--muted);font-size:14px}
 .stage p b{color:var(--text)}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--text);width:calc(100% - 24px);max-width:720px;padding:18px;max-height:92vh}
+dialog::backdrop{background:rgba(10,14,20,.55)}
+dialog h2{margin:0 0 6px}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin-top:12px}
+.form label{display:block;font-size:13px;color:var(--muted)}
+.form label span.h{display:block;font-size:12px;opacity:.85}
+.form input,.form select,.form textarea{width:100%;font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);margin-top:2px}
+.form .full{grid-column:1/-1}
+.formerr{color:var(--bad);font-size:14px;margin:8px 0 0;min-height:1.2em}
+.hdrbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 @media (max-width:560px){
+  .form{grid-template-columns:1fr}
   .top{flex-direction:column-reverse}
   .fit{align-self:flex-start;display:flex;gap:8px;align-items:baseline;padding:4px 12px;flex-wrap:wrap}
   .fit small,.fit .cf{display:inline;margin:0}
@@ -108,9 +119,27 @@ pre{background:var(--surface);border:1px solid var(--line);border-radius:8px;pad
 <header>
   <h1>Prospect Intelligence</h1><span class="badge" id="mode">Loading…</span>
   <p class="sub">Prototype aligned to Dev Spec v0.2 · Scores are review-order aids only, never Sales qualification · Nothing is sent automatically</p>
+<div class="hdrbtns"><button class="btn" id="btn-connect" type="button">Connect sheet</button><button class="btn primary" id="btn-add" type="button">+ Add account</button></div>
 </header>
 <nav role="tablist" aria-label="Views" id="tabs"></nav>
 <div id="msg"></div>
+<dialog id="dlg-conn" aria-labelledby="conn-h">
+  <h2 id="conn-h">Connect to the Google Sheet</h2>
+  <p class="sub">Paste the web app link from the Apps Script and the access code. They are saved in this browser only, never in the page’s code. Once connected, the page reads from the sheet and writes back to it.</p>
+  <div class="form" style="grid-template-columns:1fr">
+    <label>Web app link<input id="c-url" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off"></label>
+    <label>Access code<input id="c-code" type="password" autocomplete="off"></label>
+  </div>
+  <p class="formerr" id="c-err" role="alert"></p>
+  <div class="actions"><button class="btn primary" id="c-go" type="button">Connect</button><button class="btn" id="c-off" type="button">Disconnect</button><button class="btn" id="c-close" type="button">Close</button></div>
+</dialog>
+<dialog id="dlg-add" aria-labelledby="add-h">
+  <h2 id="add-h">Add account</h2>
+  <p class="sub">Goes into the sheet as status New, awaiting Growth review. Use public business information only.</p>
+  <form id="addform" onsubmit="return false"></form>
+  <p class="formerr" id="a-err" role="alert"></p>
+  <div class="actions"><button class="btn primary" id="a-go" type="button">Add to sheet</button><button class="btn" id="a-close" type="button">Cancel</button></div>
+</dialog>
 <main id="view" aria-live="polite"></main>
 </div>
 
@@ -118,7 +147,7 @@ pre{background:var(--surface);border:1px solid var(--line);border-radius:8px;pad
 /* ===== Settings you may edit ===================================================
    Leave all three empty for sample data. To use Google Sheets, put each tab's
    "Publish to web → CSV" link here (see README). Anyone with a link can read that tab. */
-const SHEET_CSV_URLS = { merchant: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTZLgXwU7yd3FpENi1QFpa2Sz_KwonQvtxUf-PNm0w794RT2dHDcS6XgJWaxqitTlq-Rz6pBPgxOV4_/pub?gid=1865718041&single=true&output=csv", partner: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTZLgXwU7yd3FpENi1QFpa2Sz_KwonQvtxUf-PNm0w794RT2dHDcS6XgJWaxqitTlq-Rz6pBPgxOV4_/pub?gid=1773144159&single=true&output=csv", playbooks: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTZLgXwU7yd3FpENi1QFpa2Sz_KwonQvtxUf-PNm0w794RT2dHDcS6XgJWaxqitTlq-Rz6pBPgxOV4_/pub?gid=365065347&single=true&output=csv" };
+const SHEET_CSV_URLS = { merchant: "", partner: "", playbooks: "" };
 const CONFIG = {
  "rubric_version": "v0.2-hypothesis",
  "rating_levels": [
@@ -1679,6 +1708,9 @@ const bandTier = b => b==="A"?["t-hi","Band A"]:b==="B"?["t-mid","Band B"]:["t-l
 
 /* ---------- state ---------- */
 let TABLES={merchant:[],partner:[]}, REGISTRY=[], MODE="sample", decisions={}, filters={seg:"",sig:"",q:""}, view=(location.hash||"#review").slice(1);
+const CONN_KEY="toi-prospect-intel-conn", SCRIPT_RE=/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/;
+let conn=null; try{ const c=JSON.parse(localStorage.getItem(CONN_KEY)||"null"); if(c&&SCRIPT_RE.test(c.url)&&c.code) conn=c; }catch(e){}
+let WRITABLE=false, busy=false;
 let reviewer=""; try{ reviewer=localStorage.getItem(REVIEWER_KEY)||""; }catch(e){}
 try{ decisions=JSON.parse(localStorage.getItem(STORE_KEY)||"{}"); }catch(e){ decisions={}; }
 const save = () => { try{ localStorage.setItem(STORE_KEY, JSON.stringify(decisions)); }catch(e){} };
@@ -1721,8 +1753,8 @@ function card(m, mode){
   const info=[`<span class="tag">${esc(segLabel(seg))}${r.type?" · "+esc(r.type):""}</span>`,r.category&&`<span class="tag">${esc(r.category)}</span>`,r.geography&&`<span class="tag">${esc(r.geography)}</span>`,
     r.platform&&`<span class="tag">${esc(r.platform)}</span>`, r.status==="Revise"&&`<span class="tag warn">Revision requested</span>`, r.status==="Investigate"&&`<span class="tag warn">Being investigated</span>`,
     e.unknown?`<span class="tag warn">${e.unknown} unknown</span>`:"" ].filter(Boolean).join("");
-  const k=esc(m.k), nm=!reviewer;
-  const why2 = nm?'title="Enter your name in “Reviewing as” first"':"";
+  const k=esc(m.k), nm=!reviewer || (WRITABLE && !r.engine_id);
+  const why2 = !reviewer?'title="Enter your name in “Reviewing as” first"':(nm?'title="This row has no Engine ID in the sheet"':"");
   let btns="";
   if(mode==="review"){
     btns=`<button class="btn primary" data-act="Approved" data-k="${k}" ${(!e.canApprove||nm)?"disabled":""} ${why2}>Approve</button>
@@ -1792,7 +1824,7 @@ function reviewerBar(){
   return `<div class="tools"><label for="rv">Reviewing as</label><input id="rv" value="${esc(reviewer)}" placeholder="Your name (required to decide)" size="26" autocomplete="name"></div>`;
 }
 function changesBanner(){
-  const n=Object.keys(decisions).length; if(!n) return "";
+  const n=Object.keys(decisions).length; if(!n||WRITABLE) return "";
   return `<div class="banner"><b>${n} change${n>1?"s":""} saved in this browser only.</b> The page can’t write to the sheet — copy them and update the matching columns (Status, Reviewer, Decision date, Assignee, Outcome) there.
    <div class="actions"><button class="btn" data-do="copy-changes">Copy changes</button><button class="btn" data-do="reset">Reset to sheet values</button></div></div>`;
 }
@@ -1914,10 +1946,12 @@ document.addEventListener("click", ev=>{
   const t=ev.target.closest("[data-tab],[data-act],[data-do],[data-restore]"); if(!t) return;
   if(t.dataset.tab){ view=t.dataset.tab; history.replaceState(null,"","#"+view); render(); return; }
   if(t.dataset.act){
+    if(busy||!reviewer) return; if(WRITABLE){ doWrite(t.dataset.k,{status:t.dataset.act}); return; }
     const k=t.dataset.k, o={...(decisions[k]||{})}; o.status=t.dataset.act; o.by=reviewer; o.on=today(); decisions[k]=o; save(); render(); return;
   }
   if(t.dataset.restore){
     if(!window.confirm("Re-open this account for review? Rejected or deferred accounts only come back with an explicit review.")) return;
+    if(busy||!reviewer) return; if(WRITABLE){ doWrite(t.dataset.restore,{status:"New"}); return; }
     const k=t.dataset.restore, o={...(decisions[k]||{})}; o.status="New"; o.by=reviewer; o.on=today(); decisions[k]=o; save(); render(); return;
   }
   const a=t.dataset.do, M=model();
@@ -1936,7 +1970,7 @@ document.addEventListener("change", ev=>{
   const t=ev.target, id=t.id;
   if(id==="f-seg"){ filters.seg=t.value; render(); $("#f-seg").focus(); }
   if(id==="f-sig"){ filters.sig=t.value; render(); $("#f-sig").focus(); }
-  const upd=(k,f,v)=>{ const o={...(decisions[k]||{})}; o[f]=v; decisions[k]=o; save(); render(); };
+  const upd=(k,f,v)=>{ if(WRITABLE){ if(!busy) doWrite(k,{[f==='mrr'?'won_mrr':f]:v}); return; } const o={...(decisions[k]||{})}; o[f]=v; decisions[k]=o; save(); render(); };
   if(t.dataset.assignee) upd(t.dataset.assignee,"assignee",t.value.trim());
   if(t.dataset.outcome) upd(t.dataset.outcome,"outcome",t.value);
   if(t.dataset.mrr) upd(t.dataset.mrr,"mrr",t.value.trim());
@@ -1958,24 +1992,128 @@ window.addEventListener("hashchange",()=>{ const h=location.hash.slice(1); if(TA
 
 /* ---------- start ---------- */
 async function getText(url){ const res=await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error("HTTP "+res.status); return res.text(); }
-(async function init(){
-  if(!TABS.some(t=>t[0]===view)) view="review";
-  const U=SHEET_CSV_URLS, live=U.merchant||U.partner;
+const setMsg = h => { $("#msg").innerHTML=h||""; };
+const banner = (cls,h) => `<div class="banner ${cls}">${h}</div>`;
+
+/* ----- Apps Script connection (read + write) ----- */
+async function post(payload){
+  const res=await fetch(conn.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({...payload,token:conn.code}),redirect:"follow"});
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  try{ return await res.json(); }catch(e){ throw new Error("Unexpected reply. Is the web app deployed with access set to “Anyone”?"); }
+}
+async function readTab(tab,fields){ const j=await post({action:"read",tab}); if(!j.ok) throw new Error(j.error||"Could not read "+tab); return tableFromCSV(j.csv,fields); }
+
+async function loadStatic(){
+  WRITABLE=false; const U=SHEET_CSV_URLS, live=U.merchant||U.partner;
   if(live){
     try{
       for(const seg of ["merchant","partner"]) TABLES[seg]=U[seg]?tableFromCSV(await getText(U[seg]),SEG[seg].fields).filter(r=>r.account):[];
       REGISTRY=U.playbooks?tableFromCSV(await getText(U.playbooks),C.playbook_fields).filter(p=>p.id):[];
-      setMode("Live sheet",true);
-      if(!U.playbooks) $("#msg").innerHTML=`<div class="banner warn"><b>No playbook registry URL set.</b> Every outbound recommendation will read “No approved playbook — route to Growth”.</div>`;
+      setMode("Live sheet (read-only)",true);
+      setMsg(U.playbooks?"":banner("warn","<b>No playbook registry URL set.</b> Every outbound recommendation will read “No approved playbook — route to Growth”."));
+      return;
     }catch(e){
-      TABLES={merchant:fromSample("merchant"),partner:fromSample("partner")}; REGISTRY=C.playbooks; setMode("Sample data (sheet failed)",false);
-      $("#msg").innerHTML=`<div class="banner err"><b>Couldn’t load the Google Sheet:</b> ${esc(e.message)}. Showing sample data instead.</div>`;
+      setMsg(banner("err",`<b>Couldn’t load the Google Sheet:</b> ${esc(e.message)}. Showing sample data instead.`));
     }
-  } else {
-    TABLES={merchant:fromSample("merchant"),partner:fromSample("partner")}; REGISTRY=C.playbooks; setMode("Sample data",false);
-    $("#msg").innerHTML=`<div class="banner"><b>Sample data.</b> Names, links and playbook IDs are placeholders. Decisions you click are saved in this browser only.</div>`;
+    TABLES={merchant:fromSample("merchant"),partner:fromSample("partner")}; REGISTRY=C.playbooks; setMode("Sample data (sheet failed)",false); return;
   }
-  render();
+  TABLES={merchant:fromSample("merchant"),partner:fromSample("partner")}; REGISTRY=C.playbooks; setMode("Sample data",false);
+  setMsg(banner("","<b>Sample data.</b> Names, links and playbook IDs are placeholders. Decisions you click are saved in this browser only. Use <b>Connect sheet</b> to work on the real sheet."));
+}
+async function loadData(){
+  if(!conn){ await loadStatic(); return; }
+  TABLES.merchant=(await readTab("Merchants",SEG.merchant.fields)).filter(r=>r.account);
+  TABLES.partner=(await readTab("Partners",SEG.partner.fields)).filter(r=>r.account);
+  REGISTRY=(await readTab("Playbooks",C.playbook_fields)).filter(p=>p.id);
+  WRITABLE=true; setMode("Live sheet · editable",true);
+}
+function syncButtons(){ $("#btn-connect").textContent = WRITABLE?"Connected ✓":"Connect sheet"; }
+
+async function doWrite(k, fields){
+  const m=model().find(x=>x.k===k); if(!m||busy) return;
+  if(!m.r.engine_id){ setMsg(banner("err","This row has no Engine ID in the sheet, so it can’t be updated from here.")); return; }
+  if(!reviewer){ setMsg(banner("err","Enter your name in “Reviewing as” first.")); return; }
+  busy=true; setMsg(banner("","Saving to the sheet…"));
+  try{
+    const res=await post({action:"update",tab:SEG[m.seg].sheet,engine_id:m.r.engine_id,fields,by:reviewer});
+    if(!res.ok) throw new Error(res.error||"The sheet rejected the change");
+    await loadData(); setMsg("");
+  }catch(e){ setMsg(banner("err",`<b>Not saved:</b> ${esc(e.message)}`)); }
+  finally{ busy=false; render(); }
+}
+
+/* ----- Connect dialog ----- */
+function openConnect(note){
+  $("#c-url").value=conn?conn.url:""; $("#c-code").value=""; $("#c-err").textContent=note||"";
+  $("#c-off").style.display=conn?"":"none"; $("#dlg-conn").showModal();
+}
+$("#btn-connect").addEventListener("click",()=>openConnect());
+$("#c-close").addEventListener("click",()=>$("#dlg-conn").close());
+$("#c-off").addEventListener("click",async()=>{
+  conn=null; try{ localStorage.removeItem(CONN_KEY); }catch(e){} await loadStatic(); syncButtons(); render(); $("#dlg-conn").close();
+});
+$("#c-go").addEventListener("click",async()=>{
+  const url=$("#c-url").value.trim(), code=$("#c-code").value, err=$("#c-err");
+  if(!SCRIPT_RE.test(url)){ err.textContent="The link must look like https://script.google.com/macros/s/…/exec"; return; }
+  if(!code){ err.textContent="Enter the access code."; return; }
+  const prev=conn; conn={url,code}; err.textContent="Connecting…";
+  try{
+    await loadData();
+    try{ localStorage.setItem(CONN_KEY,JSON.stringify(conn)); }catch(e){}
+    setMsg(banner("",`<b>Connected.</b> The page now reads from and writes to the sheet.`)); syncButtons(); render(); $("#dlg-conn").close();
+  }catch(e){
+    conn=prev; await loadStatic(); syncButtons(); render(); err.textContent="Couldn’t connect: "+e.message;
+  }
+});
+
+/* ----- Add account dialog ----- */
+const SYS=new Set(["engine_id","assignee","status","reviewer","decision_date","outcome","won_mrr"]);
+const DEFAULTS={second_source:"No",disqualifier:"None"};
+function addFormHTML(seg){
+  const S=SEG[seg], hints=Object.fromEntries(S.rubric.map(c=>[c.key,c.hint]));
+  const segSel=`<label class="full">Segment<select id="a-seg">${["merchant","partner"].map(x=>`<option value="${x}" ${x===seg?"selected":""}>${esc(SEG[x].label)}</option>`).join("")}</select></label>`;
+  const fields=S.fields.filter(f=>!SYS.has(f.key)).map(f=>{
+    const h=hints[f.key]?`<span class="h">${esc(hints[f.key])}</span>`:"", full=(f.key==="evidence_excerpt"||f.key==="notes")?" full":"";
+    let inp;
+    if(f.kind==="date") inp=`<input type="date" data-f="${f.key}" value="${today()}">`;
+    else if(f.kind==="text") inp=`<input data-f="${f.key}" ${f.key==="evidence_url"?'type="url" placeholder="https://"':""} maxlength="500" autocomplete="off">`;
+    else { const L=listOf(seg,f), d=f.kind==="rating"?"Unknown":(DEFAULTS[f.key]||"");
+      inp=`<select data-f="${f.key}">${d?"":'<option value="">Choose…</option>'}${L.map(v=>`<option ${v===d?"selected":""}>${esc(v)}</option>`).join("")}</select>`; }
+    return `<label class="${full.trim()}">${esc(f.label)}${h}${inp}</label>`;
+  }).join("");
+  return `<div class="form">${segSel}${fields}</div>`;
+}
+function openAdd(){
+  if(!WRITABLE){ openConnect("Connect the sheet first, then you can add accounts."); return; }
+  if(!reviewer){ setMsg(banner("err","Enter your name in “Reviewing as” (Review queue tab) before adding accounts.")); return; }
+  $("#a-err").textContent=""; $("#addform").innerHTML=addFormHTML("merchant"); $("#dlg-add").showModal();
+}
+$("#btn-add").addEventListener("click",openAdd);
+$("#a-close").addEventListener("click",()=>$("#dlg-add").close());
+$("#addform").addEventListener("change",ev=>{ if(ev.target.id==="a-seg") $("#addform").innerHTML=addFormHTML(ev.target.value); });
+$("#a-go").addEventListener("click",async()=>{
+  const err=$("#a-err"), seg=$("#a-seg").value, S=SEG[seg], fields={};
+  $("#addform").querySelectorAll("[data-f]").forEach(el=>{ fields[el.dataset.f]=el.value.trim(); });
+  if(!fields.account||!fields.website){ err.textContent="Account and website are required."; return; }
+  const d=domainOf(fields.website), dup=model().find(m=>domainOf(m.r.website)===d);
+  if(dup){ err.textContent=`Already in the list: ${dup.r.account} (${dup.r.engine_id||"no ID"}).`; return; }
+  for(const f of S.fields){ if(SYS.has(f.key)||!f.kind.startsWith("list:")) continue; if(!fields[f.key]){ err.textContent=`Choose a value for ${f.label}.`; return; } }
+  if(fields.evidence_url && !safeUrl(fields.evidence_url)){ err.textContent="Evidence URL must start with https:// or http://"; return; }
+  if(busy) return; busy=true; err.textContent="Saving…";
+  try{
+    const res=await post({action:"add",tab:S.sheet,fields,by:reviewer});
+    if(!res.ok) throw new Error(res.error||"The sheet rejected the new row");
+    await loadData(); $("#dlg-add").close(); view="review"; history.replaceState(null,"","#review");
+    setMsg(banner("",`<b>Added ${esc(fields.account)}</b> as ${esc(res.engine_id||"a new row")}. It is waiting in the Review queue.`));
+  }catch(e){ err.textContent=e.message; }
+  finally{ busy=false; render(); }
+});
+
+(async function init(){
+  if(!TABS.some(t=>t[0]===view)) view="review";
+  try{ await loadData(); }
+  catch(e){ await loadStatic(); setMsg(banner("err",`<b>Couldn’t reach the sheet:</b> ${esc(e.message)}. Showing sample data. Use <b>Connect sheet</b> to retry.`)); setMode("Sample data (sheet failed)",false); }
+  syncButtons(); render();
 })();
 </script>
 </body>
